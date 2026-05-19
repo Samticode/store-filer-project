@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile: document id must match signed-in Firebase Auth uid
+    match /Users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Adjust when you add signup or admin user management
+      allow write: if false;
+    }
+  }
+}

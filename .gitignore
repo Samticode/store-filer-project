@@ -8,6 +8,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
+# Secrets & local env (Firebase etc.)
+.env
+.env.*
+!.env.example
+
 .DS_Store
 dist
 dist-ssr
