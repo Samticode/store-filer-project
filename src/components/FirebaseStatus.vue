@@ -46,7 +46,7 @@ const authStatusClass = computed(() => {
         </div>
         <div class="flex justify-between gap-4">
           <dt class="text-slate-500">Role</dt>
-          <dd class="text-right">{{ currentUser.role }}</dd>
+          <dd class="text-right">{{ currentUser.role ?? '—' }}</dd>
         </div>
       </template>
     </dl>

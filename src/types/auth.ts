@@ -5,7 +5,7 @@ export const USER_ROLES = ['projectLeader', 'management', 'employee'] as const s
 export interface AuthUserProfile {
   email: string
   name: string
-  role: UserRole
+  role?: UserRole
 }
 
 export type AuthUser = AuthUserProfile & {
@@ -13,3 +13,7 @@ export type AuthUser = AuthUserProfile & {
 }
 
 export const USERS_COLLECTION = 'Users' as const
+
+export function hasUserRole(user: AuthUser | null | undefined): user is AuthUser & { role: UserRole } {
+  return user?.role != null
+}

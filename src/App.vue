@@ -6,7 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 
 const route = useRoute()
 const showFirebaseStatus = import.meta.env.VITE_SHOW_FIREBASE_STATUS === 'true'
-const showAppLayout = computed(() => route.meta.requiresAuth === true)
+const showAppLayout = computed(() => route.meta.role != null)
 </script>
 
 <template>

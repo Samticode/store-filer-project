@@ -1,8 +1,9 @@
 import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { UserRole } from '@/types'
+import { hasUserRole } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { routeNameForRole } from '@/utils/roleRoutes'
+import { homeRouteNameForUser, PENDING_APPROVAL_ROUTE_NAME, routeNameForRole } from '@/utils/roleRoutes'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -28,13 +29,19 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/venter',
+      name: PENDING_APPROVAL_ROUTE_NAME,
+      component: () => import('@/page/PendingApprovalPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/',
       redirect: () => {
         const authStore = useAuthStore()
         if (!authStore.isAuthenticated || !authStore.currentUser) {
           return { name: 'login' }
         }
-        return { name: routeNameForRole(authStore.currentUser.role) }
+        return { name: homeRouteNameForUser(authStore.currentUser)! }
       },
     },
     {
@@ -54,6 +61,12 @@ const router = createRouter({
       name: 'employee',
       component: () => import('@/page/EmployeePage.vue'),
       meta: { requiresAuth: true, role: 'employee' },
+    },
+    {
+      path: '/tilganger',
+      name: 'tilganger',
+      component: () => import('@/page/TilgangerPage.vue'),
+      meta: { requiresAuth: true, role: 'management' },
     },
   ],
 })
@@ -83,9 +96,23 @@ router.beforeEach(async (to) => {
     return { name: authStore.homeRouteName }
   }
 
+  const user = authStore.currentUser
+  if (!user) return
+
+  if (to.name === PENDING_APPROVAL_ROUTE_NAME) {
+    if (hasUserRole(user)) {
+      return { name: routeNameForRole(user.role) }
+    }
+    return
+  }
+
+  if (to.meta.role && !hasUserRole(user)) {
+    return { name: PENDING_APPROVAL_ROUTE_NAME }
+  }
+
   const requiredRole = to.meta.role
-  if (requiredRole && authStore.currentUser && authStore.currentUser.role !== requiredRole) {
-    return { name: routeNameForRole(authStore.currentUser.role) }
+  if (requiredRole && hasUserRole(user) && user.role !== requiredRole) {
+    return { name: routeNameForRole(user.role) }
   }
 })
 

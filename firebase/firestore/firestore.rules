@@ -2,11 +2,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profile: document id must match signed-in Firebase Auth uid
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function currentUserData() {
+      return get(/databases/$(database)/documents/Users/$(request.auth.uid)).data;
+    }
+
+    function currentUserRole() {
+      return currentUserData().role;
+    }
+
+    function isManagement() {
+      return signedIn() && currentUserRole() == 'management';
+    }
+
+    function isValidRole(role) {
+      return role in ['projectLeader', 'management', 'employee'];
+    }
+
     match /Users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      // Adjust when you add signup or admin user management
-      allow write: if false;
+      allow read: if isSelf(userId) || isManagement();
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasAll(['email', 'name'])
+        && request.resource.data.keys().hasOnly(['email', 'name']);
+      allow update: if isManagement()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && isValidRole(request.resource.data.role)
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+        );
     }
   }
 }
