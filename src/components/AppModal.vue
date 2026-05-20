@@ -79,7 +79,7 @@ onUnmounted(() => {
               <h2 id="modal-title" class="text-lg font-semibold text-gray-900">
                 {{ title }}
               </h2>
-              <p v-if="description" id="modal-description" class="mt-1 text-sm text-gray-500">
+              <p v-if="description" id="modal-description" class=" text-sm text-gray-500">
                 {{ description }}
               </p>
             </div>

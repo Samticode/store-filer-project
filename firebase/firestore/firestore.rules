@@ -26,6 +26,51 @@ service cloud.firestore {
       return role in ['projectLeader', 'management', 'employee'];
     }
 
+    function isProjectLeader() {
+      return signedIn() && currentUserRole() == 'projectLeader';
+    }
+
+    function isValidProjectStatus(status) {
+      return status in ['active', 'paused', 'finished'];
+    }
+
+    function isProjectLeaderUser(userId) {
+      return get(/databases/$(database)/documents/Users/$(userId)).data.role == 'projectLeader';
+    }
+
+    function isValidProjectCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'description', 'projectLeaderId', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'createdAt', 'updatedAt'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.description is string
+        && data.description.size() > 0
+        && data.projectLeaderId is string
+        && data.projectLeaderId.size() > 0
+        && data.status == 'active'
+        && isValidProjectStatus(data.status)
+        && isProjectLeaderUser(data.projectLeaderId)
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidProjectUpdate() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return diff.affectedKeys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'updatedAt'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.description is string
+        && data.description.size() > 0
+        && data.projectLeaderId is string
+        && data.projectLeaderId.size() > 0
+        && isValidProjectStatus(data.status)
+        && isProjectLeaderUser(data.projectLeaderId)
+        && data.createdAt == resource.data.createdAt
+        && data.updatedAt == request.time;
+    }
+
     match /Users/{userId} {
       allow read: if isSelf(userId) || isManagement();
       allow create: if isSelf(userId)
@@ -40,6 +85,14 @@ service cloud.firestore {
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
         );
+    }
+
+    match /Projects/{projectId} {
+      allow read: if isManagement()
+        || (isProjectLeader() && resource.data.projectLeaderId == request.auth.uid);
+      allow create: if isManagement() && isValidProjectCreate();
+      allow update: if isManagement() && isValidProjectUpdate();
+      allow delete: if false;
     }
   }
 }

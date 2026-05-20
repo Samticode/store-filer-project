@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { Pencil } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import EditUserModal, { type EditUserPayload } from '@/components/EditUserModal.vue'
@@ -16,7 +16,11 @@ const saving = ref(false)
 const updateError = ref<string | null>(null)
 
 onMounted(() => {
-  usersStore.fetchUsers()
+  usersStore.subscribeUsers()
+})
+
+onUnmounted(() => {
+  usersStore.unsubscribeUsersListener()
 })
 
 function openEditModal(user: AuthUser) {
@@ -49,9 +53,9 @@ async function handleSave(payload: EditUserPayload) {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col px-10 py-19">
+  <div class="flex min-h-full flex-1 flex-col px-4 py-8 lg:px-10 lg:py-19">
     <div class="space-y-2">
-      <h1 class="text-3xl font-semibold text-gray-900">Tilganger</h1>
+      <h1 class="text-2xl font-semibold text-gray-900 lg:text-3xl">Tilganger</h1>
       <p class="text-sm text-gray-500">
         Administrer brukere og tildel roller for å gi tilgang til appen.
       </p>
@@ -62,9 +66,38 @@ async function handleSave(payload: EditUserPayload) {
       <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
       <p v-else-if="users.length === 0" class="text-sm text-gray-500">Ingen brukere funnet.</p>
 
+      <div v-else class="space-y-3 lg:hidden">
+        <article
+          v-for="user in users"
+          :key="user.id"
+          class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate font-medium text-gray-900">{{ user.name }}</p>
+              <p class="mt-1 truncate text-sm text-gray-500">{{ user.email }}</p>
+            </div>
+            <span
+              class="inline-flex shrink-0 items-center rounded-sm px-2.5 py-0.5 text-xs font-medium"
+              :class="roleBadgeClass(user.role)"
+            >
+              {{ roleLabel(user.role) }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="mt-4 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            @click="openEditModal(user)"
+          >
+            <Pencil :size="14" />
+            Rediger
+          </button>
+        </article>
+      </div>
+
       <div
-        v-else
-        class="overflow-hidden rounded-lg border border-gray-200 bg-white"
+        v-if="users.length > 0"
+        class="hidden overflow-hidden rounded-lg border border-gray-200 bg-white lg:block"
       >
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">

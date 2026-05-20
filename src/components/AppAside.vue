@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { LogOut, Users } from '@lucide/vue'
+import { ChevronRight, LogOut, Users, FolderKanban } from '@lucide/vue'
 import type { Component } from 'vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -10,8 +10,12 @@ import type { UserRole } from '@/types'
 import { hasUserRole } from '@/types'
 import { roleLabel } from '@/utils/roleLabels'
 
+const emit = defineEmits<{
+  navigate: []
+}>()
+
 const authStore = useAuthStore()
-const { currentUser, homeRouteName } = storeToRefs(authStore)
+const { currentUser } = storeToRefs(authStore)
 const route = useRoute()
 
 type NavItem = {
@@ -22,6 +26,7 @@ type NavItem = {
 }
 
 const allNavItems: NavItem[] = [
+  { name: 'management', label: 'Prosjekter', icon: FolderKanban, roles: ['management'] },
   { name: 'tilganger', label: 'Tilganger', icon: Users, roles: ['management'] },
 ]
 
@@ -36,37 +41,52 @@ const navItems = computed(() =>
 )
 
 function isActive(name: string) {
+  if (name === 'management') {
+    return route.name === 'management' || route.name === 'management-project'
+  }
   return route.name === name
+}
+
+function onNavigate() {
+  emit('navigate')
 }
 </script>
 
 <template>
   <aside
-    class="flex w-100 shrink-0 flex-col justify-between border-r border-gray-200 py-20 text-gray-900 gap-12"
+    class="flex w-full shrink-0 flex-col justify-between gap-16 border-r border-gray-200 bg-white py-8 text-gray-900 lg:w-100 lg:gap-24 lg:py-20"
   >
-    <div class="px-15">
-      <p class="text-xs font-medium uppercase tracking-widest text-green-900">Store Filer</p>
+    <div class="px-6 lg:px-15">
+      <p class="text-xs font-medium uppercase tracking-widest text-green-900">Store Filer AS</p>
       <p class="text-xl font-semibold leading-tight text-gray-900">Prosjektstyring</p>
     </div>
 
     <nav class="flex-1">
-      <ul class="px-10">
-        <li v-for="item in navItems" :key="item.name">
+      <ul class="flex flex-col gap-2 px-4 lg:gap-5 lg:px-10">
+        <li v-for="item in navItems" :key="item.name" class="flex items-center">
+          <span
+            class="flex shrink-0 items-center justify-center overflow-hidden transition-[width,opacity] duration-200 ease-out"
+            :class="isActive(item.name) ? 'w-5 opacity-100' : 'w-0 opacity-0'"
+            aria-hidden="true"
+          >
+            <ChevronRight :size="16" class="text-gray-900" />
+          </span>
           <RouterLink
             :to="{ name: item.name }"
-            class="flex items-center gap-2 rounded-lg py-2 px-5 text-sm font-medium transition-colors"
-            :class="isActive(item.name) ? 'bg-gray-100 text-gray-900' : 'text-gray-900 hover:bg-gray-100 hover:text-gray-900'"
+            class="flex flex-1 items-center rounded-lg py-2 px-4 text-sm text-gray-900 transition-[font-weight] duration-200 ease-out lg:px-5"
+            :class="isActive(item.name) ? 'font-semibold' : 'font-medium'"
+            @click="onNavigate"
           >
-            <span class="flex items-center gap-2 w-full">
+            <span class="flex w-full items-center gap-4 lg:gap-6">
               <component :is="item.icon" :size="20" class="shrink-0" />
-              <span class="flex items-center">{{ item.label }}</span>
+              <span>{{ item.label }}</span>
             </span>
           </RouterLink>
         </li>
       </ul>
     </nav>
 
-    <div class="flex items-center justify-between gap-2 px-17">
+    <div class="flex items-center justify-between gap-2 px-6 lg:px-17">
       <UserAvatar v-if="currentUser" :name="currentUser.name" />
       <div class="min-w-0 flex-1">
         <p v-if="currentUser" class="truncate text-sm font-medium text-gray-900">

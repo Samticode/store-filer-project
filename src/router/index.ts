@@ -57,6 +57,12 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'management' },
     },
     {
+      path: '/management/prosjekter/:projectId',
+      name: 'management-project',
+      component: () => import('@/page/ProjectPage.vue'),
+      meta: { requiresAuth: true, role: 'management' },
+    },
+    {
       path: '/employee',
       name: 'employee',
       component: () => import('@/page/EmployeePage.vue'),
@@ -67,6 +73,11 @@ const router = createRouter({
       name: 'tilganger',
       component: () => import('@/page/TilgangerPage.vue'),
       meta: { requiresAuth: true, role: 'management' },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
+ 
     },
   ],
 })

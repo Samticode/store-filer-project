@@ -8,7 +8,7 @@ defineProps<{
   <div class="flex min-h-screen">
     <div class="relative hidden flex-2 overflow-hidden bg-green-800 lg:flex">
       <div class="relative flex flex-col justify-end p-12 xl:p-16">
-        <p class="text-sm font-medium uppercase tracking-widest text-violet-200/80">Store Filer</p>
+        <p class="text-sm font-medium uppercase tracking-widest text-violet-200/80">Store Filer AS</p>
         <h2 class="mt-1 max-w-md text-3xl font-semibold leading-tight text-white xl:text-4xl">
           Rollebasert prosjektstyring for hele teamet
         </h2>
