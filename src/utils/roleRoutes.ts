@@ -25,3 +25,22 @@ export function projectRouteNameForUser(user: AuthUser | null | undefined) {
   }
   return 'management-project'
 }
+
+export function taskRouteForTask(
+  user: AuthUser | null | undefined,
+  task: { id: string; projectId: string },
+) {
+  if (!user || !hasUserRole(user)) return null
+
+  if (user.role === 'employee') {
+    return { name: 'employee-task' as const, params: { taskId: task.id } }
+  }
+
+  const name =
+    user.role === 'projectLeader' ? ('project-leader-task' as const) : ('management-task' as const)
+
+  return {
+    name,
+    params: { projectId: task.projectId, taskId: task.id },
+  }
+}

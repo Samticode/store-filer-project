@@ -2,14 +2,16 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {
   collection,
+  doc,
   addDoc,
+  updateDoc,
   query,
   where,
   serverTimestamp,
   type Query,
 } from 'firebase/firestore'
-import { useCollection, useFirestore } from 'vuefire'
-import { TASKS_COLLECTION, type Task, type TaskData } from '@/types'
+import { useCollection, useDocument, useFirestore } from 'vuefire'
+import { TASKS_COLLECTION, type Task, type TaskData, type TaskStatus } from '@/types'
 
 function sortTasks(tasks: Task[]) {
   return [...tasks].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
@@ -19,11 +21,42 @@ export const useTasksStore = defineStore('tasks', () => {
   const db = useFirestore()
   const creating = ref(false)
   const createError = ref<string | null>(null)
+  const updatingStatus = ref(false)
+  const updateStatusError = ref<string | null>(null)
 
   const tasksSource = ref<Query | null>(null)
   const tasksCollection = useCollection<Task>(tasksSource)
 
+  const currentTaskId = ref<string | null>(null)
+  const currentTaskSource = computed(() =>
+    currentTaskId.value ? doc(db, TASKS_COLLECTION, currentTaskId.value) : null,
+  )
+  const currentTaskDoc = useDocument<Task>(currentTaskSource)
+
   const tasks = computed(() => sortTasks((tasksCollection.value ?? []) as Task[]))
+
+  const currentTask = computed(
+    () => (currentTaskDoc.value as Task | null | undefined) ?? null,
+  )
+
+  const currentTaskLoading = computed(
+    () => currentTaskId.value !== null && currentTaskDoc.pending.value,
+  )
+
+  const currentTaskError = computed(() => {
+    if (currentTaskDoc.error.value) {
+      console.error('Kunne ikke lytte på oppgave:', currentTaskDoc.error.value)
+      return 'Kunne ikke laste oppgave. Prøv igjen senere.'
+    }
+    if (
+      currentTaskId.value &&
+      !currentTaskDoc.pending.value &&
+      currentTaskDoc.value == null
+    ) {
+      return 'Oppgaven ble ikke funnet.'
+    }
+    return null
+  })
 
   const loading = computed(() => tasksSource.value !== null && tasksCollection.pending.value)
 
@@ -51,6 +84,14 @@ export const useTasksStore = defineStore('tasks', () => {
     tasksSource.value = null
   }
 
+  function subscribeTask(taskId: string) {
+    currentTaskId.value = taskId
+  }
+
+  function unsubscribeTaskListener() {
+    currentTaskId.value = null
+  }
+
   async function createTask(projectId: string, createdBy: string, data: TaskData) {
     creating.value = true
     createError.value = null
@@ -73,15 +114,40 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  async function updateTaskStatus(taskId: string, status: TaskStatus) {
+    updatingStatus.value = true
+    updateStatusError.value = null
+    try {
+      await updateDoc(doc(db, TASKS_COLLECTION, taskId), {
+        status,
+        updatedAt: serverTimestamp(),
+      })
+    } catch (e) {
+      console.error('Kunne ikke oppdatere oppgavestatus:', e)
+      updateStatusError.value = 'Kunne ikke oppdatere status. Prøv igjen.'
+      throw e
+    } finally {
+      updatingStatus.value = false
+    }
+  }
+
   return {
     tasks,
+    currentTask,
     loading,
+    currentTaskLoading,
     creating,
+    updatingStatus,
     error,
+    currentTaskError,
     createError,
+    updateStatusError,
     subscribeProjectTasks,
     subscribeEmployeeTasks,
     unsubscribeTasksListener,
+    subscribeTask,
+    unsubscribeTaskListener,
     createTask,
+    updateTaskStatus,
   }
 })

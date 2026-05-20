@@ -44,10 +44,21 @@ const navItems = computed(() =>
 
 function isActive(name: string) {
   if (name === 'management') {
-    return route.name === 'management' || route.name === 'management-project'
+    return (
+      route.name === 'management' ||
+      route.name === 'management-project' ||
+      route.name === 'management-task'
+    )
   }
   if (name === 'project-leader') {
-    return route.name === 'project-leader' || route.name === 'project-leader-project'
+    return (
+      route.name === 'project-leader' ||
+      route.name === 'project-leader-project' ||
+      route.name === 'project-leader-task'
+    )
+  }
+  if (name === 'employee') {
+    return route.name === 'employee' || route.name === 'employee-task'
   }
   return route.name === name
 }

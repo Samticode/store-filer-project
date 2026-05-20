@@ -147,6 +147,90 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function isAssignedEmployeeTask() {
+      return isEmployee() && resource.data.assignedEmployeeId == request.auth.uid;
+    }
+
+    function isTaskProjectLeader() {
+      return isProjectLeader() && ownsProject(resource.data.projectId);
+    }
+
+    function isValidEmployeeTaskStatusUpdate() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isAssignedEmployeeTask()
+        && resource.data.status != 'approved'
+        && diff.affectedKeys().hasOnly(['status', 'updatedAt'])
+        && isValidTaskStatus(data.status)
+        && data.updatedAt == request.time
+        && data.title == resource.data.title
+        && data.description == resource.data.description
+        && data.priority == resource.data.priority
+        && data.projectId == resource.data.projectId
+        && data.assignedEmployeeId == resource.data.assignedEmployeeId
+        && data.createdBy == resource.data.createdBy
+        && data.createdAt == resource.data.createdAt
+        && data.approvedBy == resource.data.approvedBy
+        && data.approvedAt == resource.data.approvedAt
+        && (
+          (resource.data.status == 'not_started' && data.status == 'in_progress')
+          || (resource.data.status == 'in_progress' && data.status == 'pending_approval')
+          || (resource.data.status == 'in_progress' && data.status == 'not_started')
+          || (resource.data.status == 'pending_approval' && data.status == 'in_progress')
+        );
+    }
+
+    function isValidProjectLeaderTaskApproval() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isTaskProjectLeader()
+        && resource.data.status == 'pending_approval'
+        && data.status == 'approved'
+        && diff.affectedKeys().hasOnly(['status', 'approvedBy', 'approvedAt', 'updatedAt'])
+        && data.approvedBy == request.auth.uid
+        && data.approvedAt == request.time
+        && data.updatedAt == request.time
+        && data.title == resource.data.title
+        && data.description == resource.data.description
+        && data.priority == resource.data.priority
+        && data.projectId == resource.data.projectId
+        && data.assignedEmployeeId == resource.data.assignedEmployeeId
+        && data.createdBy == resource.data.createdBy
+        && data.createdAt == resource.data.createdAt;
+    }
+
+    function isValidProjectLeaderTaskContentUpdate() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isTaskProjectLeader()
+        && resource.data.status != 'approved'
+        && diff.affectedKeys().hasOnly(['title', 'description', 'priority', 'status', 'assignedEmployeeId', 'updatedAt'])
+        && data.title is string
+        && data.title.size() > 0
+        && data.description is string
+        && data.description.size() > 0
+        && isValidTaskPriority(data.priority)
+        && isValidTaskStatus(data.status)
+        && data.status != 'approved'
+        && data.assignedEmployeeId is string
+        && data.assignedEmployeeId.size() > 0
+        && isEmployeeUser(data.assignedEmployeeId)
+        && data.updatedAt == request.time
+        && data.projectId == resource.data.projectId
+        && data.createdBy == resource.data.createdBy
+        && data.createdAt == resource.data.createdAt
+        && data.approvedBy == resource.data.approvedBy
+        && data.approvedAt == resource.data.approvedAt;
+    }
+
+    function isValidProjectLeaderTaskUpdate() {
+      return isValidProjectLeaderTaskApproval() || isValidProjectLeaderTaskContentUpdate();
+    }
+
+    function isValidTaskUpdate() {
+      return isValidEmployeeTaskStatusUpdate() || isValidProjectLeaderTaskUpdate();
+    }
+
     match /Users/{userId} {
       allow read: if canReadUser(userId);
       allow create: if isSelf(userId)
@@ -176,7 +260,8 @@ service cloud.firestore {
         || (isProjectLeader() && ownsProject(resource.data.projectId))
         || (isEmployee() && resource.data.assignedEmployeeId == request.auth.uid);
       allow create: if isProjectLeader() && isValidTaskCreate();
-      allow update, delete: if false;
+      allow update: if isValidTaskUpdate();
+      allow delete: if false;
     }
   }
 }

@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import UserAvatar from '@/components/UserAvatar.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { AuthUser, Task } from '@/types'
+import { taskRouteForTask } from '@/utils/roleRoutes'
 import { formatNorwegianDate } from '@/utils/formatDate'
 import {
   taskPriorityBadgeClass,
@@ -17,6 +21,9 @@ const props = defineProps<{
   error?: string | null
 }>()
 
+const router = useRouter()
+const { currentUser } = storeToRefs(useAuthStore())
+
 const userNameById = computed(() =>
   Object.fromEntries(props.users.map((user) => [user.id, user.name])),
 )
@@ -24,6 +31,14 @@ const userNameById = computed(() =>
 function userName(userId: string | null) {
   if (!userId) return '—'
   return userNameById.value[userId] ?? 'Ukjent'
+}
+
+function taskRoute(task: Task) {
+  return taskRouteForTask(currentUser.value, task)
+}
+
+function openTask(task: Task) {
+  router.push(taskRoute(task)!)
 }
 </script>
 
@@ -34,10 +49,11 @@ function userName(userId: string | null) {
 
   <template v-else>
     <div class="space-y-3 lg:hidden">
-      <article
+      <RouterLink
         v-for="task in tasks"
         :key="task.id"
-        class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+        :to="taskRoute(task)!"
+        class="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
       >
         <div class="flex items-start justify-between gap-3">
           <h3 class="text-sm font-semibold text-gray-900 line-clamp-2">
@@ -74,7 +90,7 @@ function userName(userId: string | null) {
             {{ formatNorwegianDate(task.createdAt) }}
           </span>
         </div>
-      </article>
+      </RouterLink>
     </div>
 
     <div class="hidden overflow-hidden rounded-lg border border-gray-200 bg-white lg:block">
@@ -126,7 +142,12 @@ function userName(userId: string | null) {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
-          <tr v-for="task in tasks" :key="task.id" class="hover:bg-gray-50">
+          <tr
+            v-for="task in tasks"
+            :key="task.id"
+            class="cursor-pointer hover:bg-gray-50"
+            @click="openTask(task)"
+          >
             <td class="max-w-xs px-6 py-4 text-sm font-medium text-gray-900">
               <p class="line-clamp-2">{{ task.title }}</p>
             </td>

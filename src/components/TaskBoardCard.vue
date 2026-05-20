@@ -1,16 +1,28 @@
 <script setup lang="ts">
-import type { Task } from '@/types'
-import { taskPriorityBadgeClass, taskPriorityLabel } from '@/utils/taskLabels'
+import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import UserAvatar from '@/components/UserAvatar.vue'
+import { useAuthStore } from '@/stores/auth'
+import type { Task } from '@/types'
+import { taskRouteForTask } from '@/utils/roleRoutes'
+import { taskPriorityBadgeClass, taskPriorityLabel } from '@/utils/taskLabels'
 
-defineProps<{
+const props = defineProps<{
   task: Task
   assignedEmployeeName: string
 }>()
+
+const { currentUser } = storeToRefs(useAuthStore())
+
+const taskRoute = computed(() => taskRouteForTask(currentUser.value, props.task))
 </script>
 
 <template>
-  <article class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+  <RouterLink
+    :to="taskRoute!"
+    class="block rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+  >
     <h3 class="text-sm font-semibold text-gray-900 line-clamp-2">
       {{ task.title }}
     </h3>
@@ -34,5 +46,5 @@ defineProps<{
         </span>
       </div>
     </div>
-  </article>
+  </RouterLink>
 </template>

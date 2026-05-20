@@ -57,6 +57,12 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'projectLeader' },
     },
     {
+      path: '/project-leader/prosjekter/:projectId/oppgaver/:taskId',
+      name: 'project-leader-task',
+      component: () => import('@/page/TaskPage.vue'),
+      meta: { requiresAuth: true, role: 'projectLeader' },
+    },
+    {
       path: '/management',
       name: 'management',
       component: () => import('@/page/ManagementPage.vue'),
@@ -69,9 +75,21 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'management' },
     },
     {
+      path: '/management/prosjekter/:projectId/oppgaver/:taskId',
+      name: 'management-task',
+      component: () => import('@/page/TaskPage.vue'),
+      meta: { requiresAuth: true, role: 'management' },
+    },
+    {
       path: '/employee',
       name: 'employee',
       component: () => import('@/page/EmployeePage.vue'),
+      meta: { requiresAuth: true, role: 'employee' },
+    },
+    {
+      path: '/employee/oppgaver/:taskId',
+      name: 'employee-task',
+      component: () => import('@/page/TaskPage.vue'),
       meta: { requiresAuth: true, role: 'employee' },
     },
     {
