@@ -6,6 +6,8 @@ export const mockSignUp = vi.fn()
 export const mockSignOut = vi.fn()
 export const mockGetDoc = vi.fn()
 export const mockSetDoc = vi.fn()
+export const mockAddDoc = vi.fn()
+export const mockUpdateDoc = vi.fn()
 export const mockRouterReplace = vi.fn()
 
 export const authStateCallback = vi.fn()
@@ -61,8 +63,14 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(() => ({})),
   doc: vi.fn((_db: unknown, ...path: string[]) => ({ path: path.join('/') })),
+  collection: vi.fn((_db: unknown, path: string) => ({ collection: path })),
+  query: vi.fn((...args: unknown[]) => ({ query: args })),
+  where: vi.fn((field: string, op: string, value: unknown) => ({ where: { field, op, value } })),
+  serverTimestamp: vi.fn(() => ({ _serverTimestamp: true })),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
+  addDoc: (...args: unknown[]) => mockAddDoc(...args),
+  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
 }))
 
 vi.mock('@/router', () => ({
