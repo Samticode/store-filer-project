@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Clock } from '@lucide/vue'
 import AuthSplitLayout from '@/components/AuthSplitLayout.vue'
@@ -8,16 +8,6 @@ import { PENDING_APPROVAL_ROUTE_NAME } from '@/utils/roleRoutes'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
-let stopWatchingProfile: (() => void) | null = null
-
-onMounted(() => {
-  stopWatchingProfile = authStore.watchProfile()
-})
-
-onUnmounted(() => {
-  stopWatchingProfile?.()
-})
 
 watch(
   () => authStore.homeRouteName,

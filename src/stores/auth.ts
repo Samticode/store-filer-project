@@ -1,20 +1,20 @@
-import { ref, computed } from 'vue'
+import { computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import {
-  getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  type User,
 } from 'firebase/auth'
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
-import { firebaseApp } from '@/firebase'
+import { doc, setDoc } from 'firebase/firestore'
+import {
+  useCurrentUser,
+  useDocument,
+  useFirestore,
+  useFirebaseAuth,
+  useIsCurrentUserLoaded,
+} from 'vuefire'
 import { USERS_COLLECTION, hasUserRole, type AuthUser } from '@/types'
 import { homeRouteNameForUser } from '@/utils/roleRoutes'
-
-const auth = getAuth(firebaseApp)
-const db = getFirestore(firebaseApp)
 
 function profileFromSnapshot(uid: string, data: Record<string, unknown>): AuthUser {
   return {
@@ -25,70 +25,79 @@ function profileFromSnapshot(uid: string, data: Record<string, unknown>): AuthUs
   }
 }
 
-async function loadUserProfile(uid: string): Promise<AuthUser> {
-  const snap = await getDoc(doc(db, USERS_COLLECTION, uid))
-  if (!snap.exists()) {
-    throw new Error('Ingen brukerprofil funnet for denne kontoen.')
-  }
-  return profileFromSnapshot(uid, snap.data())
-}
-
 export const useAuthStore = defineStore('auth', () => {
-  const currentUser = ref<AuthUser | null>(null)
-  const loading = ref(true)
+  const db = useFirestore()
+  const auth = useFirebaseAuth()!
+  const firebaseUser = useCurrentUser()
+  const isAuthLoaded = useIsCurrentUserLoaded()
+
+  const profileSource = computed(() => {
+    const uid = firebaseUser.value?.uid
+    return uid ? doc(db, USERS_COLLECTION, uid) : null
+  })
+
+  const profileDoc = useDocument(profileSource)
+
+  watch(
+    () =>
+      [
+        isAuthLoaded.value,
+        firebaseUser.value?.uid ?? null,
+        profileDoc.pending.value,
+        profileDoc.value,
+      ] as const,
+    async ([loaded, uid, pending, profile]) => {
+      if (!loaded || !uid || pending) return
+      if (profile == null) {
+        console.error('Klarte ikke å laste brukerprofil')
+        await signOut(auth)
+      }
+    },
+  )
+
+  const currentUser = computed<AuthUser | null>(() => {
+    const user = firebaseUser.value
+    if (!user) return null
+
+    const profile = profileDoc.value
+    if (!profile || profileDoc.pending.value) return null
+
+    return profileFromSnapshot(user.uid, profile as Record<string, unknown>)
+  })
+
+  const loading = computed(
+    () => !isAuthLoaded.value || (firebaseUser.value != null && profileDoc.pending.value),
+  )
 
   const isAuthenticated = computed(() => currentUser.value !== null)
   const hasRole = computed(() => hasUserRole(currentUser.value))
   const isPendingApproval = computed(() => isAuthenticated.value && !hasRole.value)
-
   const homeRouteName = computed(() => homeRouteNameForUser(currentUser.value))
 
-  onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-    try {
-      if (firebaseUser) {
-        currentUser.value = await loadUserProfile(firebaseUser.uid)
-      } else {
-        currentUser.value = null
-      }
-    } catch (error) {
-      console.error('Klarte ikke å laste brukerprofil:', error)
-      currentUser.value = null
-      if (firebaseUser) {
-        await signOut(auth)
-      }
-    } finally {
-      loading.value = false
-    }
-  })
+  async function waitForProfile() {
+    if (!firebaseUser.value) return
+    await profileDoc.promise.value
+  }
 
   async function login(email: string, password: string) {
-    const { user } = await signInWithEmailAndPassword(auth, email, password)
-    currentUser.value = await loadUserProfile(user.uid)
+    await signInWithEmailAndPassword(auth, email, password)
+    await waitForProfile()
+    if (!profileDoc.value) {
+      throw new Error('Ingen brukerprofil funnet for denne kontoen.')
+    }
   }
 
   async function signup(name: string, email: string, password: string) {
     const { user } = await createUserWithEmailAndPassword(auth, email, password)
     const profile = { email, name }
     await setDoc(doc(db, USERS_COLLECTION, user.uid), profile)
-    currentUser.value = { id: user.uid, ...profile }
+    await waitForProfile()
   }
 
   async function logout() {
     await signOut(auth)
-    currentUser.value = null
     const { default: router } = await import('@/router')
     await router.replace({ name: 'login' })
-  }
-
-  function watchProfile() {
-    const uid = auth.currentUser?.uid
-    if (!uid) return () => {}
-
-    return onSnapshot(doc(db, USERS_COLLECTION, uid), (snap) => {
-      if (snap.exists()) {
-        currentUser.value = profileFromSnapshot(uid, snap.data())
-      }
-    })
   }
 
   return {
@@ -101,6 +110,5 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     signup,
     logout,
-    watchProfile,
   }
 })

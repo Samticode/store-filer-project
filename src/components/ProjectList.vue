@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import type { AuthUser, Project } from '@/types'
 import { formatNorwegianDate } from '@/utils/formatDate'
 import { projectStatusBadgeClass, projectStatusLabel } from '@/utils/projectLabels'
+import { projectRouteNameForUser } from '@/utils/roleRoutes'
 import UserAvatar from '@/components/UserAvatar.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   projects: Project[]
@@ -12,6 +15,9 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const { currentUser } = storeToRefs(useAuthStore())
+
+const projectRouteName = computed(() => projectRouteNameForUser(currentUser.value))
 
 const leaderNameById = computed(() =>
   Object.fromEntries(props.users.map((user) => [user.id, user.name])),
@@ -22,7 +28,7 @@ function leaderName(project: Project) {
 }
 
 function openProject(project: Project) {
-  router.push({ name: 'management-project', params: { projectId: project.id } })
+  router.push({ name: projectRouteName.value, params: { projectId: project.id } })
 }
 </script>
 

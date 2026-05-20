@@ -18,3 +18,10 @@ export function homeRouteNameForUser(user: AuthUser | null | undefined) {
   if (!hasUserRole(user)) return PENDING_APPROVAL_ROUTE_NAME
   return routeNameForRole(user.role)
 }
+
+export function projectRouteNameForUser(user: AuthUser | null | undefined) {
+  if (user && hasUserRole(user) && user.role === 'projectLeader') {
+    return 'project-leader-project'
+  }
+  return 'management-project'
+}

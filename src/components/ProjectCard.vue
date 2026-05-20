@@ -1,18 +1,26 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import type { Project } from '@/types'
 import { formatNorwegianDate } from '@/utils/formatDate'
 import { projectStatusBadgeClass, projectStatusLabel } from '@/utils/projectLabels'
+import { projectRouteNameForUser } from '@/utils/roleRoutes'
 import UserAvatar from '@/components/UserAvatar.vue'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{
   project: Project
   leaderName: string
 }>()
+
+const { currentUser } = storeToRefs(useAuthStore())
+
+const projectRouteName = computed(() => projectRouteNameForUser(currentUser.value))
 </script>
 
 <template>
   <RouterLink
-    :to="{ name: 'management-project', params: { projectId: project.id } }"
+    :to="{ name: projectRouteName, params: { projectId: project.id } }"
     class="flex flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
   >
     <div class="flex items-start justify-between gap-3">
@@ -38,9 +46,9 @@ defineProps<{
           {{ leaderName }}
         </p>
       </div>
-        <p class="text-right text-gray-900">
-          {{ formatNorwegianDate(project.createdAt) }}
-        </p>
+      <p class="text-right text-gray-900">
+        {{ formatNorwegianDate(project.createdAt) }}
+      </p>
     </div>
   </RouterLink>
 </template>

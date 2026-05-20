@@ -1,104 +1,93 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {
-  getFirestore,
   collection,
   doc,
   addDoc,
   updateDoc,
+  query,
+  where,
   serverTimestamp,
-  onSnapshot,
-  type Unsubscribe,
+  type CollectionReference,
+  type Query,
 } from 'firebase/firestore'
-import { firebaseApp } from '@/firebase'
+import { useCollection, useDocument, useFirestore } from 'vuefire'
 import { PROJECTS_COLLECTION, PROJECT_STATUS_ACTIVE, type Project, type ProjectData } from '@/types'
 
-const db = getFirestore(firebaseApp)
-
-function projectsFromSnapshot(docs: { id: string; data: () => Record<string, unknown> }[]): Project[] {
-  const loaded = docs.map(
-    (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Project,
-  )
-  loaded.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
-  return loaded
+function sortProjects(projects: Project[]) {
+  return [...projects].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
 }
 
 export const useProjectsStore = defineStore('projects', () => {
-  const projects = ref<Project[]>([])
-  const currentProject = ref<Project | null>(null)
-  const loading = ref(false)
-  const currentProjectLoading = ref(false)
+  const db = useFirestore()
   const creating = ref(false)
   const updating = ref(false)
-  const error = ref<string | null>(null)
-  const currentProjectError = ref<string | null>(null)
   const createError = ref<string | null>(null)
   const updateError = ref<string | null>(null)
 
-  let unsubscribeProjects: Unsubscribe | null = null
-  let unsubscribeProject: Unsubscribe | null = null
+  const projectsSource = ref<CollectionReference | Query | null>(null)
+  const projectsCollection = useCollection<Project>(projectsSource)
+
+  const currentProjectId = ref<string | null>(null)
+  const currentProjectSource = computed(() =>
+    currentProjectId.value ? doc(db, PROJECTS_COLLECTION, currentProjectId.value) : null,
+  )
+  const currentProjectDoc = useDocument<Project>(currentProjectSource)
+
+  const projects = computed(() => sortProjects((projectsCollection.value ?? []) as Project[]))
+
+  const loading = computed(
+    () => projectsSource.value !== null && projectsCollection.pending.value,
+  )
+
+  const error = computed(() => {
+    if (!projectsCollection.error.value) return null
+    console.error('Kunne ikke lytte på prosjekter:', projectsCollection.error.value)
+    return 'Kunne ikke laste prosjekter. Prøv igjen senere.'
+  })
+
+  const currentProject = computed(() => (currentProjectDoc.value as Project | null | undefined) ?? null)
+
+  const currentProjectLoading = computed(
+    () => currentProjectId.value !== null && currentProjectDoc.pending.value,
+  )
+
+  const currentProjectError = computed(() => {
+    if (currentProjectDoc.error.value) {
+      console.error('Kunne ikke lytte på prosjekt:', currentProjectDoc.error.value)
+      return 'Kunne ikke laste prosjekt. Prøv igjen senere.'
+    }
+    if (
+      currentProjectId.value &&
+      !currentProjectDoc.pending.value &&
+      currentProjectDoc.value == null
+    ) {
+      return 'Prosjektet ble ikke funnet.'
+    }
+    return null
+  })
 
   function subscribeProjects() {
-    if (unsubscribeProjects) return
+    projectsSource.value = collection(db, PROJECTS_COLLECTION)
+  }
 
-    loading.value = true
-    error.value = null
-
-    unsubscribeProjects = onSnapshot(
+  function subscribeLeaderProjects(leaderId: string) {
+    projectsSource.value = query(
       collection(db, PROJECTS_COLLECTION),
-      (snapshot) => {
-        projects.value = projectsFromSnapshot(snapshot.docs)
-        loading.value = false
-        error.value = null
-      },
-      (e) => {
-        console.error('Kunne ikke lytte på prosjekter:', e)
-        error.value = 'Kunne ikke laste prosjekter. Prøv igjen senere.'
-        projects.value = []
-        loading.value = false
-      },
+      where('projectLeaderId', '==', leaderId),
     )
   }
 
   function unsubscribeProjectsListener() {
-    unsubscribeProjects?.()
-    unsubscribeProjects = null
+    projectsSource.value = null
   }
 
   function subscribeProject(projectId: string) {
-    unsubscribeProjectListener()
-
-    currentProjectLoading.value = true
-    currentProjectError.value = null
-    currentProject.value = null
-
-    unsubscribeProject = onSnapshot(
-      doc(db, PROJECTS_COLLECTION, projectId),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          currentProject.value = { id: snapshot.id, ...snapshot.data() } as Project
-          currentProjectError.value = null
-        } else {
-          currentProject.value = null
-          currentProjectError.value = 'Prosjektet ble ikke funnet.'
-        }
-        currentProjectLoading.value = false
-      },
-      (e) => {
-        console.error('Kunne ikke lytte på prosjekt:', e)
-        currentProjectError.value = 'Kunne ikke laste prosjekt. Prøv igjen senere.'
-        currentProject.value = null
-        currentProjectLoading.value = false
-      },
-    )
+    currentProjectId.value = projectId
   }
 
   function unsubscribeProjectListener() {
-    unsubscribeProject?.()
-    unsubscribeProject = null
-    currentProject.value = null
-    currentProjectError.value = null
-    currentProjectLoading.value = false
+    currentProjectId.value = null
   }
 
   async function updateProject(projectId: string, data: ProjectData) {
@@ -149,6 +138,7 @@ export const useProjectsStore = defineStore('projects', () => {
     createError,
     updateError,
     subscribeProjects,
+    subscribeLeaderProjects,
     unsubscribeProjectsListener,
     subscribeProject,
     unsubscribeProjectListener,

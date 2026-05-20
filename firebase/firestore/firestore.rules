@@ -30,6 +30,17 @@ service cloud.firestore {
       return signedIn() && currentUserRole() == 'projectLeader';
     }
 
+    function isEmployee() {
+      return signedIn() && currentUserRole() == 'employee';
+    }
+
+    function canReadUser(userId) {
+      return isSelf(userId)
+        || isManagement()
+        || isProjectLeader()
+        || (isEmployee() && resource.data.role == 'projectLeader');
+    }
+
     function isValidProjectStatus(status) {
       return status in ['active', 'paused', 'finished'];
     }
@@ -71,8 +82,73 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function ownsProject(projectId) {
+      return get(/databases/$(database)/documents/Projects/$(projectId)).data.projectLeaderId == request.auth.uid;
+    }
+
+    function isValidTaskStatus(status) {
+      return status in ['not_started', 'in_progress', 'pending_approval', 'approved'];
+    }
+
+    function isValidTaskPriority(priority) {
+      return priority in ['low', 'medium', 'high', 'critical'];
+    }
+
+    function isEmployeeUser(userId) {
+      return get(/databases/$(database)/documents/Users/$(userId)).data.role == 'employee';
+    }
+
+    function isValidTaskCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'title',
+          'description',
+          'priority',
+          'status',
+          'projectId',
+          'assignedEmployeeId',
+          'createdBy',
+          'createdAt',
+          'updatedAt',
+          'approvedBy',
+          'approvedAt',
+        ])
+        && data.keys().hasOnly([
+          'title',
+          'description',
+          'priority',
+          'status',
+          'projectId',
+          'assignedEmployeeId',
+          'createdBy',
+          'createdAt',
+          'updatedAt',
+          'approvedBy',
+          'approvedAt',
+        ])
+        && data.title is string
+        && data.title.size() > 0
+        && data.description is string
+        && data.description.size() > 0
+        && isValidTaskPriority(data.priority)
+        && isValidTaskStatus(data.status)
+        && data.projectId is string
+        && data.projectId.size() > 0
+        && data.assignedEmployeeId is string
+        && data.assignedEmployeeId.size() > 0
+        && data.createdBy is string
+        && data.createdBy.size() > 0
+        && data.createdBy == request.auth.uid
+        && isEmployeeUser(data.assignedEmployeeId)
+        && ownsProject(data.projectId)
+        && data.approvedBy == null
+        && data.approvedAt == null
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
     match /Users/{userId} {
-      allow read: if isSelf(userId) || isManagement();
+      allow read: if canReadUser(userId);
       allow create: if isSelf(userId)
         && request.resource.data.keys().hasAll(['email', 'name'])
         && request.resource.data.keys().hasOnly(['email', 'name']);
@@ -93,6 +169,14 @@ service cloud.firestore {
       allow create: if isManagement() && isValidProjectCreate();
       allow update: if isManagement() && isValidProjectUpdate();
       allow delete: if false;
+    }
+
+    match /Tasks/{taskId} {
+      allow read: if isManagement()
+        || (isProjectLeader() && ownsProject(resource.data.projectId))
+        || (isEmployee() && resource.data.assignedEmployeeId == request.auth.uid);
+      allow create: if isProjectLeader() && isValidTaskCreate();
+      allow update, delete: if false;
     }
   }
 }

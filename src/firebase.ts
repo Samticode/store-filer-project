@@ -10,5 +10,5 @@ const firebaseConfig: FirebaseOptions = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-/** Initialized Firebase Web SDK app (VueFire consumes this via `useFirebaseApp()`). */
+/** Initialized Firebase Web SDK app (used by VueFire via `app.use(VueFire, { firebaseApp })`). */
 export const firebaseApp = initializeApp(firebaseConfig)

@@ -79,7 +79,7 @@ async function handleCreateProject(payload: CreateProjectPayload) {
       <p v-else-if="projects.length === 0" class="text-sm text-gray-500">Ingen prosjekter funnet.</p>
 
       <template v-else>
-        <div class="mb-4 hidden justify-end lg:flex">
+        <div class="mb-4 hidden justify-start lg:flex">
           <div
             class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1"
             role="tablist"

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { ChevronRight, LogOut, Users, FolderKanban } from '@lucide/vue'
+import { ChevronRight, ClipboardList, LogOut, Users, FolderKanban } from '@lucide/vue'
 import type { Component } from 'vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -26,6 +26,8 @@ type NavItem = {
 }
 
 const allNavItems: NavItem[] = [
+  { name: 'employee', label: 'Dine oppgaver', icon: ClipboardList, roles: ['employee'] },
+  { name: 'project-leader', label: 'Mine prosjekter', icon: FolderKanban, roles: ['projectLeader'] },
   { name: 'management', label: 'Prosjekter', icon: FolderKanban, roles: ['management'] },
   { name: 'tilganger', label: 'Tilganger', icon: Users, roles: ['management'] },
 ]
@@ -43,6 +45,9 @@ const navItems = computed(() =>
 function isActive(name: string) {
   if (name === 'management') {
     return route.name === 'management' || route.name === 'management-project'
+  }
+  if (name === 'project-leader') {
+    return route.name === 'project-leader' || route.name === 'project-leader-project'
   }
   return route.name === name
 }

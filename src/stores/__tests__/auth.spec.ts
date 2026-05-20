@@ -1,41 +1,62 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { shallowRef } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
+import '@/test/mocks/vuefire'
 import '@/test/mocks/firebase'
 import {
   mockSignIn,
   mockSignUp,
   mockSignOut,
-  mockGetDoc,
   mockSetDoc,
   mockRouterReplace,
-  authStateCallback,
   mockFirebaseUser,
   mockAuthUser,
   mockPendingAuthUser,
-  mockGetDocSuccess,
-  mockGetDocMissing,
 } from '@/test/mocks/firebase'
+import {
+  resetVuefireMocks,
+  mockAuthState,
+  mockProfileValue,
+  mockProfilePending,
+  mockProfileDoc,
+} from '@/test/mocks/vuefire'
 import { useAuthStore } from '@/stores/auth'
+import type { AuthUser } from '@/types'
+
+function setProfile(user: AuthUser) {
+  mockProfileValue.value = {
+    email: user.email,
+    name: user.name,
+    ...(user.role != null ? { role: user.role } : {}),
+  }
+  mockProfilePending.value = false
+  mockProfileDoc.promise = shallowRef(Promise.resolve(mockProfileValue.value)) as typeof mockProfileDoc.promise
+}
 
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    resetVuefireMocks()
     mockSignIn.mockResolvedValue({ user: mockFirebaseUser })
     mockSignUp.mockResolvedValue({ user: mockFirebaseUser })
     mockSignOut.mockResolvedValue(undefined)
     mockSetDoc.mockResolvedValue(undefined)
-    mockGetDocSuccess()
   })
 
   it('login loads profile and sets authenticated state', async () => {
+    await mockAuthState(null)
+    setProfile(mockAuthUser)
     const store = useAuthStore()
-    await authStateCallback(null)
+
+    mockSignIn.mockImplementation(async () => {
+      await mockAuthState(mockFirebaseUser)
+      return { user: mockFirebaseUser }
+    })
 
     await store.login('test@example.com', 'password123')
 
     expect(mockSignIn).toHaveBeenCalledWith({}, 'test@example.com', 'password123')
-    expect(mockGetDoc).toHaveBeenCalled()
     expect(store.currentUser).toEqual(mockAuthUser)
     expect(store.isAuthenticated).toBe(true)
     expect(store.hasRole).toBe(true)
@@ -43,9 +64,15 @@ describe('useAuthStore', () => {
   })
 
   it('login throws when user profile is missing', async () => {
-    mockGetDocMissing()
+    await mockAuthState(null)
     const store = useAuthStore()
-    await authStateCallback(null)
+
+    mockSignIn.mockImplementation(async () => {
+      await mockAuthState(mockFirebaseUser)
+      mockProfileValue.value = null
+      mockProfileDoc.promise = shallowRef(Promise.resolve(null)) as typeof mockProfileDoc.promise
+      return { user: mockFirebaseUser }
+    })
 
     await expect(store.login('test@example.com', 'wrong')).rejects.toThrow(
       'Ingen brukerprofil funnet for denne kontoen.',
@@ -53,8 +80,18 @@ describe('useAuthStore', () => {
   })
 
   it('signup creates profile without role and routes to pending approval', async () => {
+    await mockAuthState(null)
     const store = useAuthStore()
-    await authStateCallback(null)
+
+    mockSignUp.mockImplementation(async () => {
+      await mockAuthState(mockFirebaseUser)
+      setProfile({
+        id: mockFirebaseUser.uid,
+        email: 'ny@example.com',
+        name: 'Ny Bruker',
+      })
+      return { user: mockFirebaseUser }
+    })
 
     await store.signup('Ny Bruker', 'ny@example.com', 'password123')
 
@@ -71,9 +108,14 @@ describe('useAuthStore', () => {
   })
 
   it('pending user has pending approval home route', async () => {
-    mockGetDocSuccess(mockPendingAuthUser)
+    setProfile(mockPendingAuthUser)
     const store = useAuthStore()
-    await authStateCallback(null)
+
+    mockSignIn.mockImplementation(async () => {
+      await mockAuthState(mockFirebaseUser)
+      setProfile(mockPendingAuthUser)
+      return { user: mockFirebaseUser }
+    })
 
     await store.login('pending@example.com', 'password123')
 
@@ -82,8 +124,13 @@ describe('useAuthStore', () => {
   })
 
   it('logout signs out, clears user, and redirects to login', async () => {
+    await mockAuthState(mockFirebaseUser)
+    setProfile(mockAuthUser)
     const store = useAuthStore()
-    await store.login('test@example.com', 'password123')
+
+    mockSignOut.mockImplementation(async () => {
+      await mockAuthState(null)
+    })
 
     await store.logout()
 

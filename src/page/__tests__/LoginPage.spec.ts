@@ -1,13 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { shallowRef } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import '@/test/mocks/firebase'
 import {
   mockSignIn,
-  mockGetDoc,
   mockFirebaseUser,
-  mockGetDocSuccess,
+  mockAuthUser,
 } from '@/test/mocks/firebase'
+import {
+  resetVuefireMocks,
+  mockAuthState,
+  mockProfileValue,
+  mockProfilePending,
+  mockProfileDoc,
+} from '@/test/mocks/vuefire'
 import LoginPage from '@/page/LoginPage.vue'
 
 const push = vi.fn()
@@ -25,8 +31,18 @@ describe('LoginPage', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     push.mockReset()
-    mockSignIn.mockResolvedValue({ user: mockFirebaseUser })
-    mockGetDocSuccess()
+    resetVuefireMocks()
+    mockSignIn.mockImplementation(async () => {
+      await mockAuthState(mockFirebaseUser)
+      mockProfileValue.value = {
+        email: mockAuthUser.email,
+        name: mockAuthUser.name,
+        role: mockAuthUser.role,
+      }
+      mockProfilePending.value = false
+      mockProfileDoc.promise = shallowRef(Promise.resolve(mockProfileValue.value)) as typeof mockProfileDoc.promise
+      return { user: mockFirebaseUser }
+    })
   })
 
   function mountLoginPage() {

@@ -1,5 +1,7 @@
 import { config } from '@vue/test-utils'
 import { vi } from 'vitest'
+import '@/test/mocks/vuefire'
+import '@/test/mocks/firebase'
 
 config.global.stubs = {
   RouterLink: {

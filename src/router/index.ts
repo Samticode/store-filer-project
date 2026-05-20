@@ -51,6 +51,12 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'projectLeader' },
     },
     {
+      path: '/project-leader/prosjekter/:projectId',
+      name: 'project-leader-project',
+      component: () => import('@/page/ProjectPage.vue'),
+      meta: { requiresAuth: true, role: 'projectLeader' },
+    },
+    {
       path: '/management',
       name: 'management',
       component: () => import('@/page/ManagementPage.vue'),
