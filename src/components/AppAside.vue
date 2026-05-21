@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { ChevronRight, ClipboardList, LogOut, Users, FolderKanban } from '@lucide/vue'
 import type { Component } from 'vue'
 import UserAvatar from '@/components/UserAvatar.vue'
+import PendingApprovalBell from '@/components/PendingApprovalBell.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { UserRole } from '@/types'
 import { hasUserRole } from '@/types'
@@ -40,6 +41,13 @@ const navItems = computed(() =>
         hasUserRole(currentUser.value) &&
         item.roles.includes(currentUser.value.role)),
   ),
+)
+
+const showApprovalBell = computed(
+  () =>
+    currentUser.value !== null &&
+    hasUserRole(currentUser.value) &&
+    currentUser.value.role === 'projectLeader',
 )
 
 function isActive(name: string) {
@@ -112,14 +120,17 @@ function onNavigate() {
           {{ roleLabel(currentUser.role) }}
         </p>
       </div>
-      <button
-        type="button"
-        class="flex shrink-0 items-center justify-center rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-        aria-label="Logg ut"
-        @click="authStore.logout"
-      >
-        <LogOut :size="16" />
-      </button>
+      <div class="flex shrink-0 items-center gap-1">
+        <PendingApprovalBell v-if="showApprovalBell" @navigate="onNavigate" />
+        <button
+          type="button"
+          class="flex shrink-0 items-center justify-center rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          aria-label="Logg ut"
+          @click="authStore.logout"
+        >
+          <LogOut :size="16" />
+        </button>
+      </div>
     </div>
   </aside>
 </template>

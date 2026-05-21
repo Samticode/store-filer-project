@@ -11,10 +11,10 @@ import {
   type Query,
 } from 'firebase/firestore'
 import { useCollection, useDocument, useFirestore } from 'vuefire'
-import { TASKS_COLLECTION, type Task, type TaskData, type TaskStatus } from '@/types'
+import { TASKS_COLLECTION, PROJECTS_COLLECTION, type Task, type TaskData, type TaskStatus } from '@/types'
 
 function sortTasks(tasks: Task[]) {
-  return [...tasks].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+  return [...tasks].sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
 }
 
 export const useTasksStore = defineStore('tasks', () => {
@@ -103,6 +103,10 @@ export const useTasksStore = defineStore('tasks', () => {
         approvedBy: null,
         approvedAt: null,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+
+      await updateDoc(doc(db, PROJECTS_COLLECTION, projectId), {
         updatedAt: serverTimestamp(),
       })
     } catch (e) {

@@ -11,7 +11,8 @@
     "test:unit:run": "vitest run",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes"
+    "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
+    "firebase:deploy:storage": "firebase deploy --only storage"
   },
   "dependencies": {
     "@lucide/vue": "^1.16.0",

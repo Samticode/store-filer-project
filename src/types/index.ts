@@ -22,3 +22,5 @@ export {
   TASK_STATUS_PENDING_APPROVAL,
   TASK_STATUS_APPROVED,
 } from './task'
+export type { CreateTaskUpdateInput, RecordProjectLeaderReviewInput, RecordStatusChangeInput, TaskUpdate, TaskUpdateData } from './update'
+export { TASK_UPDATES_SUBCOLLECTION } from './update'

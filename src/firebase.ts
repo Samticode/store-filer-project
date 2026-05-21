@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import type { FirebaseOptions } from 'firebase/app'
+import { getStorage } from 'firebase/storage'
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,3 +13,5 @@ const firebaseConfig: FirebaseOptions = {
 
 /** Initialized Firebase Web SDK app (used by VueFire via `app.use(VueFire, { firebaseApp })`). */
 export const firebaseApp = initializeApp(firebaseConfig)
+
+export const firebaseStorage = getStorage(firebaseApp)

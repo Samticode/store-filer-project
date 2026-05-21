@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { LayoutGrid, List } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import ProjectCard from '@/components/ProjectCard.vue'
@@ -29,10 +29,6 @@ onMounted(() => {
   if (currentUser.value) {
     projectsStore.subscribeLeaderProjects(currentUser.value.id)
   }
-})
-
-onUnmounted(() => {
-  projectsStore.unsubscribeProjectsListener()
 })
 </script>
 

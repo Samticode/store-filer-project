@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function taskData(taskId) {
+      return firestore.get(/databases/(default)/documents/Tasks/$(taskId)).data;
+    }
+
+    function canUploadTaskUpdate(taskId) {
+      let task = taskData(taskId);
+      return signedIn()
+        && task.assignedEmployeeId == request.auth.uid
+        && task.status == 'in_progress';
+    }
+
+    function canReadTaskUpdate(taskId) {
+      let task = taskData(taskId);
+      return signedIn()
+        && (
+          firestore.get(/databases/(default)/documents/Users/$(request.auth.uid)).data.role == 'management'
+          || (
+            firestore.get(/databases/(default)/documents/Users/$(request.auth.uid)).data.role == 'projectLeader'
+            && firestore.get(/databases/(default)/documents/Projects/$(task.projectId)).data.projectLeaderId == request.auth.uid
+          )
+          || task.assignedEmployeeId == request.auth.uid
+        );
+    }
+
+    match /Tasks/{taskId}/Updates/{updateId}/{kind}/{fileName} {
+      allow read: if canReadTaskUpdate(taskId);
+      allow write: if canUploadTaskUpdate(taskId)
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+  }
+}

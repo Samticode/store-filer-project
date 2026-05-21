@@ -46,8 +46,8 @@ const projectRouteName = computed(() => projectRouteNameForUser(currentUser.valu
           {{ leaderName }}
         </p>
       </div>
-      <p class="text-right text-gray-900">
-        {{ formatNorwegianDate(project.createdAt) }}
+      <p class="text-right text-gray-500">
+        {{ formatNorwegianDate(project.updatedAt) }}
       </p>
     </div>
   </RouterLink>

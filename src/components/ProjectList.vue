@@ -63,7 +63,7 @@ function openProject(project: Project) {
           </span>
         </div>
         <span class="shrink-0 text-xs text-gray-500">
-          {{ formatNorwegianDate(project.createdAt) }}
+          {{ formatNorwegianDate(project.updatedAt) }}
         </span>
       </div>
     </button>
@@ -103,6 +103,12 @@ function openProject(project: Project) {
           >
             Opprettet
           </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+          >
+            Oppdatert
+          </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 bg-white">
@@ -131,6 +137,9 @@ function openProject(project: Project) {
           </td>
           <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
             {{ formatNorwegianDate(project.createdAt) }}
+          </td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+            {{ formatNorwegianDate(project.updatedAt) }}
           </td>
         </tr>
       </tbody>

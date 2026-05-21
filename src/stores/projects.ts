@@ -15,7 +15,7 @@ import { useCollection, useDocument, useFirestore } from 'vuefire'
 import { PROJECTS_COLLECTION, PROJECT_STATUS_ACTIVE, type Project, type ProjectData } from '@/types'
 
 function sortProjects(projects: Project[]) {
-  return [...projects].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+  return [...projects].sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
 }
 
 export const useProjectsStore = defineStore('projects', () => {

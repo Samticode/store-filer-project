@@ -82,6 +82,22 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function isValidProjectUpdatedAtTouch() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return diff.affectedKeys().hasOnly(['updatedAt'])
+        && data.updatedAt == request.time
+        && data.name == resource.data.name
+        && data.description == resource.data.description
+        && data.projectLeaderId == resource.data.projectLeaderId
+        && data.status == resource.data.status
+        && data.createdAt == resource.data.createdAt
+        && (
+          (isProjectLeader() && resource.data.projectLeaderId == request.auth.uid)
+          || isEmployee()
+        );
+    }
+
     function ownsProject(projectId) {
       return get(/databases/$(database)/documents/Projects/$(projectId)).data.projectLeaderId == request.auth.uid;
     }
@@ -180,6 +196,44 @@ service cloud.firestore {
         );
     }
 
+    function isValidEmployeeTaskUpdatedAtTouch() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isAssignedEmployeeTask()
+        && resource.data.status == 'in_progress'
+        && diff.affectedKeys().hasOnly(['updatedAt'])
+        && data.updatedAt == request.time
+        && data.title == resource.data.title
+        && data.description == resource.data.description
+        && data.priority == resource.data.priority
+        && data.status == resource.data.status
+        && data.projectId == resource.data.projectId
+        && data.assignedEmployeeId == resource.data.assignedEmployeeId
+        && data.createdBy == resource.data.createdBy
+        && data.createdAt == resource.data.createdAt
+        && data.approvedBy == resource.data.approvedBy
+        && data.approvedAt == resource.data.approvedAt;
+    }
+
+    function isValidProjectLeaderTaskRejection() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isTaskProjectLeader()
+        && resource.data.status == 'pending_approval'
+        && data.status == 'in_progress'
+        && diff.affectedKeys().hasOnly(['status', 'updatedAt'])
+        && data.updatedAt == request.time
+        && data.title == resource.data.title
+        && data.description == resource.data.description
+        && data.priority == resource.data.priority
+        && data.projectId == resource.data.projectId
+        && data.assignedEmployeeId == resource.data.assignedEmployeeId
+        && data.createdBy == resource.data.createdBy
+        && data.createdAt == resource.data.createdAt
+        && data.approvedBy == resource.data.approvedBy
+        && data.approvedAt == resource.data.approvedAt;
+    }
+
     function isValidProjectLeaderTaskApproval() {
       let data = request.resource.data;
       let diff = request.resource.data.diff(resource.data);
@@ -224,11 +278,123 @@ service cloud.firestore {
     }
 
     function isValidProjectLeaderTaskUpdate() {
-      return isValidProjectLeaderTaskApproval() || isValidProjectLeaderTaskContentUpdate();
+      return isValidProjectLeaderTaskApproval()
+        || isValidProjectLeaderTaskRejection()
+        || isValidProjectLeaderTaskContentUpdate();
     }
 
     function isValidTaskUpdate() {
-      return isValidEmployeeTaskStatusUpdate() || isValidProjectLeaderTaskUpdate();
+      return isValidEmployeeTaskStatusUpdate()
+        || isValidEmployeeTaskUpdatedAtTouch()
+        || isValidProjectLeaderTaskUpdate();
+    }
+
+    function getTaskData(taskId) {
+      return get(/databases/$(database)/documents/Tasks/$(taskId)).data;
+    }
+
+    function canReadTaskData(task) {
+      return isManagement()
+        || (isProjectLeader() && ownsProject(task.projectId))
+        || (isEmployee() && task.assignedEmployeeId == request.auth.uid);
+    }
+
+    function canReadTask(taskId) {
+      return canReadTaskData(getTaskData(taskId));
+    }
+
+    function isValidEmployeeStatusTransition(currentStatus, newStatus) {
+      return (
+        (currentStatus == 'not_started' && newStatus == 'in_progress')
+        || (currentStatus == 'in_progress' && newStatus == 'pending_approval')
+        || (currentStatus == 'in_progress' && newStatus == 'not_started')
+        || (currentStatus == 'pending_approval' && newStatus == 'in_progress')
+      );
+    }
+
+    function isValidEmployeeUpdateCreate(taskId) {
+      let task = getTaskData(taskId);
+      let data = request.resource.data;
+      let hasStatusChange = data.statusChange != null;
+      return isEmployee()
+        && task.assignedEmployeeId == request.auth.uid
+        && task.status != 'approved'
+        && data.keys().hasAll([
+          'text',
+          'createdBy',
+          'createdAt',
+          'statusChange',
+          'imageUrl',
+          'fileUrl',
+          'fileName',
+        ])
+        && data.keys().hasOnly([
+          'text',
+          'createdBy',
+          'createdAt',
+          'statusChange',
+          'imageUrl',
+          'fileUrl',
+          'fileName',
+        ])
+        && data.text is string
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time
+        && (data.statusChange == null || isValidTaskStatus(data.statusChange))
+        && (
+          !hasStatusChange && task.status == 'in_progress'
+          || hasStatusChange && isValidEmployeeStatusTransition(task.status, data.statusChange)
+        )
+        && (data.imageUrl == null || data.imageUrl is string)
+        && (data.fileUrl == null || data.fileUrl is string)
+        && (data.fileName == null || data.fileName is string)
+        && (
+          data.text.size() > 0
+          || data.imageUrl != null
+          || data.fileUrl != null
+          || hasStatusChange
+        );
+    }
+
+    function isValidProjectLeaderUpdateCreate(taskId) {
+      let task = getTaskData(taskId);
+      let data = request.resource.data;
+      return isProjectLeader()
+        && ownsProject(task.projectId)
+        && task.status == 'pending_approval'
+        && data.keys().hasAll([
+          'text',
+          'createdBy',
+          'createdAt',
+          'statusChange',
+          'imageUrl',
+          'fileUrl',
+          'fileName',
+        ])
+        && data.keys().hasOnly([
+          'text',
+          'createdBy',
+          'createdAt',
+          'statusChange',
+          'imageUrl',
+          'fileUrl',
+          'fileName',
+        ])
+        && data.text is string
+        && data.text.size() > 0
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time
+        && (
+          data.statusChange == 'approved'
+          || data.statusChange == 'in_progress'
+        )
+        && data.imageUrl == null
+        && data.fileUrl == null
+        && data.fileName == null;
+    }
+
+    function isValidUpdateCreate(taskId) {
+      return isValidEmployeeUpdateCreate(taskId) || isValidProjectLeaderUpdateCreate(taskId);
     }
 
     match /Users/{userId} {
@@ -251,7 +417,7 @@ service cloud.firestore {
       allow read: if isManagement()
         || (isProjectLeader() && resource.data.projectLeaderId == request.auth.uid);
       allow create: if isManagement() && isValidProjectCreate();
-      allow update: if isManagement() && isValidProjectUpdate();
+      allow update: if (isManagement() && isValidProjectUpdate()) || isValidProjectUpdatedAtTouch();
       allow delete: if false;
     }
 
@@ -262,6 +428,12 @@ service cloud.firestore {
       allow create: if isProjectLeader() && isValidTaskCreate();
       allow update: if isValidTaskUpdate();
       allow delete: if false;
+
+      match /Updates/{updateId} {
+        allow read: if canReadTask(taskId);
+        allow create: if isValidUpdateCreate(taskId);
+        allow update, delete: if false;
+      }
     }
   }
 }
