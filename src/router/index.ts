@@ -9,6 +9,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
     requiresGuest?: boolean
+    appLayout?: boolean
     role?: UserRole
   }
 }
@@ -97,6 +98,12 @@ const router = createRouter({
       name: 'tilganger',
       component: () => import('@/page/TilgangerPage.vue'),
       meta: { requiresAuth: true, role: 'management' },
+    },
+    {
+      path: '/profil',
+      name: 'profile',
+      component: () => import('@/page/ProfilePage.vue'),
+      meta: { requiresAuth: true, appLayout: true },
     },
     {
       path: '/:pathMatch(.*)*',

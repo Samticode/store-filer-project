@@ -17,8 +17,6 @@ const { projects, loading, error } = storeToRefs(projectsStore)
 
 const viewMode = ref<ViewMode>('table')
 
-const usersForDisplay = computed(() => (currentUser.value ? [currentUser.value] : []))
-
 function leaderName(project: Project) {
   return currentUser.value?.id === project.projectLeaderId
     ? (currentUser.value.name ?? 'Ukjent')
@@ -86,7 +84,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <ProjectList v-if="viewMode === 'table'" :projects="projects" :users="usersForDisplay" />
+        <ProjectList v-if="viewMode === 'table'" :projects="projects" />
 
         <div
           v-else-if="viewMode === 'cards'"

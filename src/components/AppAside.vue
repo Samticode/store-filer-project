@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { ChevronRight, ClipboardList, LogOut, Users, FolderKanban } from '@lucide/vue'
+import { ChevronRight, ClipboardList, LogOut, User, Users, FolderKanban } from '@lucide/vue'
 import type { Component } from 'vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import PendingApprovalBell from '@/components/PendingApprovalBell.vue'
@@ -31,16 +31,19 @@ const allNavItems: NavItem[] = [
   { name: 'project-leader', label: 'Mine prosjekter', icon: FolderKanban, roles: ['projectLeader'] },
   { name: 'management', label: 'Prosjekter', icon: FolderKanban, roles: ['management'] },
   { name: 'tilganger', label: 'Tilganger', icon: Users, roles: ['management'] },
+  { name: 'profile', label: 'Profil', icon: User },
 ]
 
 const navItems = computed(() =>
-  allNavItems.filter(
-    (item) =>
-      !item.roles ||
-      (currentUser.value !== null &&
-        hasUserRole(currentUser.value) &&
-        item.roles.includes(currentUser.value.role)),
-  ),
+  allNavItems.filter((item) => {
+    if (!currentUser.value) return false
+    if (item.name === 'profile') return true
+    return (
+      !!item.roles &&
+      hasUserRole(currentUser.value) &&
+      item.roles.includes(currentUser.value.role)
+    )
+  }),
 )
 
 const showApprovalBell = computed(
@@ -51,6 +54,9 @@ const showApprovalBell = computed(
 )
 
 function isActive(name: string) {
+  if (name === 'profile') {
+    return route.name === 'profile'
+  }
   if (name === 'management') {
     return (
       route.name === 'management' ||
@@ -111,15 +117,22 @@ function onNavigate() {
     </nav>
 
     <div class="flex items-center justify-between gap-2 px-6 lg:px-17">
-      <UserAvatar v-if="currentUser" :name="currentUser.name" />
-      <div class="min-w-0 flex-1">
-        <p v-if="currentUser" class="truncate text-sm font-medium text-gray-900">
-          {{ currentUser.name }}
-        </p>
-        <p v-if="currentUser" class="truncate text-xs text-gray-500">
-          {{ roleLabel(currentUser.role) }}
-        </p>
-      </div>
+      <RouterLink
+        v-if="currentUser"
+        to="/profil"
+        class="flex min-w-0 flex-1 items-center gap-2 rounded-lg transition-colors hover:bg-gray-50"
+        @click="onNavigate"
+      >
+        <UserAvatar :name="currentUser.name" />
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-gray-900">
+            {{ currentUser.name }}
+          </p>
+          <p class="truncate text-xs text-gray-500">
+            {{ roleLabel(currentUser.role) }}
+          </p>
+        </div>
+      </RouterLink>
       <div class="flex shrink-0 items-center gap-1">
         <PendingApprovalBell v-if="showApprovalBell" @navigate="onNavigate" />
         <button

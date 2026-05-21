@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, watch } from 'vue'
+import { onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import ProjectTasksSection from '@/components/ProjectTasksSection.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -11,15 +11,7 @@ const tasksStore = useTasksStore()
 const usersStore = useUsersStore()
 const { currentUser } = storeToRefs(authStore)
 const { tasks, loading: tasksLoading, error: tasksError } = storeToRefs(tasksStore)
-const { users } = storeToRefs(usersStore)
-
-const usersForDisplay = computed(() => {
-  if (!currentUser.value) return users.value
-  if (users.value.some((user) => user.id === currentUser.value!.id)) {
-    return users.value
-  }
-  return [currentUser.value, ...users.value]
-})
+const { usersForDisplay } = storeToRefs(usersStore)
 
 watch(
   () => currentUser.value?.id,
@@ -34,7 +26,6 @@ watch(
 
 onUnmounted(() => {
   tasksStore.unsubscribeTasksListener()
-  usersStore.unsubscribeUsersListener()
 })
 </script>
 

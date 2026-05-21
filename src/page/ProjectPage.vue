@@ -47,7 +47,6 @@ watch(
     if (id) {
       projectsStore.subscribeProject(id)
       tasksStore.subscribeProjectTasks(id)
-      usersStore.subscribeUsers()
     }
   },
   { immediate: true },
@@ -56,7 +55,6 @@ watch(
 onUnmounted(() => {
   projectsStore.unsubscribeProjectListener()
   tasksStore.unsubscribeTasksListener()
-  usersStore.unsubscribeUsersListener()
 })
 
 function openEditModal() {

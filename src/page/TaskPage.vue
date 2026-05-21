@@ -46,7 +46,7 @@ const {
   createError,
   error: updatesError,
 } = storeToRefs(taskUpdatesStore)
-const { users } = storeToRefs(usersStore)
+const { userNameById } = storeToRefs(usersStore)
 
 const taskId = computed(() => route.params.taskId as string)
 const statusError = ref<string | null>(null)
@@ -81,10 +81,6 @@ const showApprovalCard = computed(
     currentTask.value?.status === TASK_STATUS_PENDING_APPROVAL,
 )
 
-const userNameById = computed(() =>
-  Object.fromEntries(users.value.map((user) => [user.id, user.name])),
-)
-
 const assignedName = computed(() => {
   const employeeId = currentTask.value?.assignedEmployeeId
   if (!employeeId) return '—'
@@ -117,8 +113,22 @@ watch(
   (projectId) => {
     if (projectId) {
       projectsStore.subscribeProject(projectId)
-      usersStore.subscribeUsers()
     }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => {
+    const authorIds = updates.value.map((update) => update.createdBy)
+    const relatedIds = [
+      currentProject.value?.projectLeaderId,
+      currentTask.value?.assignedEmployeeId,
+    ]
+    return [...new Set([...authorIds, ...relatedIds].filter(Boolean))] as string[]
+  },
+  (userIds) => {
+    usersStore.syncLiveUserNameWatchers(userIds)
   },
   { immediate: true },
 )
@@ -127,7 +137,7 @@ onUnmounted(() => {
   tasksStore.unsubscribeTaskListener()
   taskUpdatesStore.unsubscribeTaskUpdatesListener()
   projectsStore.unsubscribeProjectListener()
-  usersStore.unsubscribeUsersListener()
+  usersStore.clearLiveUserNameWatchers()
 })
 
 async function changeStatus(status: TaskStatus) {
@@ -181,10 +191,6 @@ function resetUpdateForm() {
   clearImage()
   clearFile()
   submitError.value = null
-}
-
-function updateAuthorName(userId: string) {
-  return userNameById.value[userId] ?? 'Ukjent'
 }
 
 function updateStatusDescription(statusChange: TaskStatus | null) {
@@ -372,9 +378,9 @@ async function reviewTask(approved: boolean) {
                     :class="taskUpdateCardClass(update.statusChange, update.text)"
                   >
                     <div class="flex flex-wrap items-center gap-2">
-                      <UserAvatar :name="updateAuthorName(update.createdBy)" :scale="0.7" />
+                      <UserAvatar :name="userNameById[update.createdBy] ?? 'Ukjent'" :scale="0.7" />
                       <p class="min-w-0 text-sm text-gray-900">
-                        <span class="font-semibold">{{ updateAuthorName(update.createdBy) }}</span>
+                        <span class="font-semibold">{{ userNameById[update.createdBy] ?? 'Ukjent' }}</span>
                         <span class="text-gray-400"> · </span>
                         <time class="text-gray-500">{{
                           formatRelativeTimeNorwegian(update.createdAt)

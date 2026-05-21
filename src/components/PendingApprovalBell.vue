@@ -203,7 +203,7 @@ async function openTask(taskId: string, projectId: string) {
                   @click="openTask(task.id, task.projectId)"
                 >
                   <span class="text-sm font-medium text-gray-900 line-clamp-2">{{ task.title }}</span>
-                  <span class="text-xs text-gray-500">
+                  <span class="text-xs text-gray-500 line-clamp-3">
                     {{ projectNameById[task.projectId] ?? 'Ukjent prosjekt' }}
                   </span>
                   <span class="text-xs font-medium text-amber-800">

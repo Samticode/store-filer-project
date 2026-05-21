@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 import { Pencil } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import EditUserModal, { type EditUserPayload } from '@/components/EditUserModal.vue'
@@ -15,13 +15,6 @@ const editingUser = ref<AuthUser | null>(null)
 const saving = ref(false)
 const updateError = ref<string | null>(null)
 
-onMounted(() => {
-  usersStore.subscribeUsers()
-})
-
-onUnmounted(() => {
-  usersStore.unsubscribeUsersListener()
-})
 
 function openEditModal(user: AuthUser) {
   editingUser.value = user

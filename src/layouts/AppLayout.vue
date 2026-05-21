@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { Menu } from '@lucide/vue'
 import AppAside from '@/components/AppAside.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useUsersStore } from '@/stores/users'
 
 const route = useRoute()
+const authStore = useAuthStore()
+const usersStore = useUsersStore()
+const { isAuthenticated } = storeToRefs(authStore)
 const isMobileNavOpen = ref(false)
 
 watch(
@@ -17,6 +23,19 @@ watch(
 watch(isMobileNavOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
+
+watch(
+  isAuthenticated,
+  (authenticated) => {
+    if (authenticated) {
+      usersStore.subscribeUsers()
+      return
+    }
+
+    usersStore.resetListeners()
+  },
+  { immediate: true },
+)
 
 function closeMobileNav() {
   isMobileNavOpen.value = false

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { LayoutGrid, List } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import AddProjectModal, { type CreateProjectPayload } from '@/components/AddProjectModal.vue'
@@ -13,29 +13,32 @@ type ViewMode = 'table' | 'cards'
 
 const usersStore = useUsersStore()
 const projectsStore = useProjectsStore()
-const { projectLeaders, users, loading: usersLoading, error: usersError } = storeToRefs(usersStore)
+const { projectLeaders, userNameById, loading: usersLoading, error: usersError } = storeToRefs(usersStore)
 const { projects, loading, error, creating } = storeToRefs(projectsStore)
 
 const isAddModalOpen = ref(false)
 const createError = ref<string | null>(null)
 const viewMode = ref<ViewMode>('table')
 
-const leaderNameById = computed(() =>
-  Object.fromEntries(users.value.map((user) => [user.id, user.name])),
-)
-
 function leaderName(project: Project) {
-  return leaderNameById.value[project.projectLeaderId] ?? 'Ukjent'
+  return userNameById.value[project.projectLeaderId] ?? 'Ukjent'
 }
 
 onMounted(() => {
-  usersStore.subscribeUsers()
   projectsStore.subscribeProjects()
 })
 
+watch(
+  () => [...new Set(projects.value.map((project) => project.projectLeaderId))],
+  (leaderIds) => {
+    usersStore.syncLiveUserNameWatchers(leaderIds)
+  },
+  { immediate: true },
+)
+
 onUnmounted(() => {
-  usersStore.unsubscribeUsersListener()
   projectsStore.unsubscribeProjectsListener()
+  usersStore.clearLiveUserNameWatchers()
 })
 
 function openAddModal() {
@@ -118,7 +121,7 @@ async function handleCreateProject(payload: CreateProjectPayload) {
           </div>
         </div>
 
-        <ProjectList v-if="viewMode === 'table'" :projects="projects" :users="users" />
+        <ProjectList v-if="viewMode === 'table'" :projects="projects" />
 
         <div
           v-else-if="viewMode === 'cards'"

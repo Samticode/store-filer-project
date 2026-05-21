@@ -397,19 +397,37 @@ service cloud.firestore {
       return isValidEmployeeUpdateCreate(taskId) || isValidProjectLeaderUpdateCreate(taskId);
     }
 
+    function isValidSelfProfileUpdate(userId) {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isSelf(userId)
+        && diff.affectedKeys().hasOnly(['name', 'email'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.email is string
+        && data.email.size() > 0
+        && (
+          !('role' in resource.data)
+          || data.role == resource.data.role
+        );
+    }
+
     match /Users/{userId} {
       allow read: if canReadUser(userId);
       allow create: if isSelf(userId)
         && request.resource.data.keys().hasAll(['email', 'name'])
         && request.resource.data.keys().hasOnly(['email', 'name']);
-      allow update: if isManagement()
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && isValidRole(request.resource.data.role)
-        && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+      allow update: if isValidSelfProfileUpdate(userId)
+        || (
+          isManagement()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && isValidRole(request.resource.data.role)
+          && (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+          )
         );
     }
 

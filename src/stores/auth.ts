@@ -1,11 +1,12 @@
-import { computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  updateEmail,
 } from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc, updateDoc } from 'firebase/firestore'
 import {
   useCurrentUser,
   useDocument,
@@ -25,11 +26,32 @@ function profileFromSnapshot(uid: string, data: Record<string, unknown>): AuthUs
   }
 }
 
+function profileUpdateErrorMessage(error: unknown) {
+  const code =
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code: string }).code)
+      : ''
+
+  if (code === 'auth/requires-recent-login') {
+    return 'Av sikkerhetsgrunner må du logge ut og inn igjen før du kan endre e-post.'
+  }
+  if (code === 'auth/email-already-in-use') {
+    return 'E-postadressen er allerede i bruk.'
+  }
+  if (code === 'auth/invalid-email') {
+    return 'Ugyldig e-postadresse.'
+  }
+
+  return 'Kunne ikke oppdatere profil. Prøv igjen.'
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const db = useFirestore()
   const auth = useFirebaseAuth()!
   const firebaseUser = useCurrentUser()
   const isAuthLoaded = useIsCurrentUserLoaded()
+  const updatingProfile = ref(false)
+  const profileUpdateError = ref<string | null>(null)
 
   const profileSource = computed(() => {
     const uid = firebaseUser.value?.uid
@@ -95,9 +117,51 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    const { useUsersStore } = await import('@/stores/users')
+    useUsersStore().resetListeners()
     await signOut(auth)
     const { default: router } = await import('@/router')
     await router.replace({ name: 'login' })
+  }
+
+  async function updateProfile(data: { name: string; email: string }) {
+    const user = firebaseUser.value
+    if (!user) {
+      throw new Error('Du er ikke innlogget.')
+    }
+
+    const trimmedName = data.name.trim()
+    const trimmedEmail = data.email.trim()
+
+    if (!trimmedName) {
+      profileUpdateError.value = 'Navn kan ikke være tomt.'
+      throw new Error(profileUpdateError.value)
+    }
+
+    if (!trimmedEmail) {
+      profileUpdateError.value = 'E-post kan ikke være tom.'
+      throw new Error(profileUpdateError.value)
+    }
+
+    updatingProfile.value = true
+    profileUpdateError.value = null
+
+    try {
+      if (trimmedEmail !== user.email) {
+        await updateEmail(user, trimmedEmail)
+      }
+
+      await updateDoc(doc(db, USERS_COLLECTION, user.uid), {
+        name: trimmedName,
+        email: trimmedEmail,
+      })
+    } catch (e) {
+      console.error('Kunne ikke oppdatere profil:', e)
+      profileUpdateError.value = profileUpdateErrorMessage(e)
+      throw e
+    } finally {
+      updatingProfile.value = false
+    }
   }
 
   return {
@@ -107,8 +171,11 @@ export const useAuthStore = defineStore('auth', () => {
     hasRole,
     isPendingApproval,
     homeRouteName,
+    updatingProfile,
+    profileUpdateError,
     login,
     signup,
     logout,
+    updateProfile,
   }
 })
