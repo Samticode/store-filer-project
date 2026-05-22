@@ -30,12 +30,16 @@ describe('useUsersStore', () => {
   describe('updateUser', () => {
     it('kaller updateDoc med riktig bruker-id og data', async () => {
       const store = useUsersStore()
-      await store.updateUser('user-1', { name: 'Ny Navn', role: 'projectLeader' })
+      await store.updateUser('user-1', {
+        name: 'Ny Navn',
+        email: 'ny@example.com',
+        role: 'projectLeader',
+      })
 
       expect(mockUpdateDoc).toHaveBeenCalledOnce()
       expect(mockUpdateDoc).toHaveBeenCalledWith(
         expect.objectContaining({ path: expect.stringContaining('user-1') }),
-        { name: 'Ny Navn', role: 'projectLeader' },
+        { name: 'Ny Navn', email: 'ny@example.com', role: 'projectLeader' },
       )
     })
   })

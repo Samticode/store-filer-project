@@ -111,7 +111,7 @@ export const useUsersStore = defineStore('users', () => {
     unsubscribeUsersListener()
   }
 
-  async function updateUser(userId: string, data: { name: string; role: UserRole }) {
+  async function updateUser(userId: string, data: { name: string; email: string; role: UserRole }) {
     await updateDoc(doc(db, USERS_COLLECTION, userId), data)
   }
 

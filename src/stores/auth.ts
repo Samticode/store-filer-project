@@ -33,13 +33,13 @@ function profileUpdateErrorMessage(error: unknown) {
       : ''
 
   if (code === 'auth/requires-recent-login') {
-    return 'Av sikkerhetsgrunner må du logge ut og inn igjen før du kan endre e-post.'
+    return 'Av sikkerhetsgrunner må du logge ut og inn igjen før du kan endre email.'
   }
   if (code === 'auth/email-already-in-use') {
-    return 'E-postadressen er allerede i bruk.'
+    return 'Emailen er allerede i bruk.'
   }
   if (code === 'auth/invalid-email') {
-    return 'Ugyldig e-postadresse.'
+    return 'Ugyldig email.'
   }
 
   return 'Kunne ikke oppdatere profil. Prøv igjen.'
@@ -139,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     if (!trimmedEmail) {
-      profileUpdateError.value = 'E-post kan ikke være tom.'
+      profileUpdateError.value = 'Email kan ikke være tom.'
       throw new Error(profileUpdateError.value)
     }
 

@@ -412,23 +412,25 @@ service cloud.firestore {
         );
     }
 
+    function isValidManagementUserUpdate() {
+      let data = request.resource.data;
+      let diff = request.resource.data.diff(resource.data);
+      return isManagement()
+        && diff.affectedKeys().hasOnly(['name', 'role', 'email'])
+        && diff.affectedKeys().size() > 0
+        && data.name is string
+        && data.name.size() > 0
+        && data.email is string
+        && data.email.size() > 0
+        && isValidRole(data.role);
+    }
+
     match /Users/{userId} {
       allow read: if canReadUser(userId);
       allow create: if isSelf(userId)
         && request.resource.data.keys().hasAll(['email', 'name'])
         && request.resource.data.keys().hasOnly(['email', 'name']);
-      allow update: if isValidSelfProfileUpdate(userId)
-        || (
-          isManagement()
-          && request.resource.data.name is string
-          && request.resource.data.name.size() > 0
-          && isValidRole(request.resource.data.role)
-          && (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
-          )
-        );
+      allow update: if isValidSelfProfileUpdate(userId) || isValidManagementUserUpdate();
     }
 
     match /Projects/{projectId} {

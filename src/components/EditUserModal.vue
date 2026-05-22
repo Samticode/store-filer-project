@@ -8,6 +8,7 @@ import { PENDING_ROLE_LABEL, ROLE_LABELS } from '@/utils/roleLabels'
 
 export type EditUserPayload = {
   name: string
+  email: string
   role: UserRole
 }
 
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const name = ref('')
+const email = ref('')
 const selectedRole = ref<UserRole | ''>('')
 const validationError = ref<string | null>(null)
 
@@ -33,13 +35,18 @@ const roleOptions = computed(() => [
 ])
 
 const canSave = computed(
-  () => name.value.trim().length > 0 && selectedRole.value !== '' && !props.saving,
+  () =>
+    name.value.trim().length > 0 &&
+    email.value.trim().length > 0 &&
+    selectedRole.value !== '' &&
+    !props.saving,
 )
 
 watch(
   () => props.user,
   (user) => {
     name.value = user?.name ?? ''
+    email.value = user?.email ?? ''
     selectedRole.value = user?.role ?? ''
     validationError.value = null
   },
@@ -48,8 +55,14 @@ watch(
 
 function handleSave() {
   const trimmedName = name.value.trim()
+  const trimmedEmail = email.value.trim()
+
   if (!trimmedName) {
     validationError.value = 'Navn kan ikke være tomt.'
+    return
+  }
+  if (!trimmedEmail) {
+    validationError.value = 'Email kan ikke være tom.'
     return
   }
   if (!selectedRole.value) {
@@ -58,7 +71,7 @@ function handleSave() {
   }
 
   validationError.value = null
-  emit('save', { name: trimmedName, role: selectedRole.value })
+  emit('save', { name: trimmedName, email: trimmedEmail, role: selectedRole.value })
 }
 </script>
 
@@ -67,10 +80,18 @@ function handleSave() {
     v-model="open"
     size="md"
     title="Rediger bruker"
-    description="Oppdater brukerens navn og rolle."
+    description="Oppdater brukerens navn, email og rolle."
   >
     <form v-if="user" class="space-y-4" @submit.prevent="handleSave">
       <AppInput v-model="name" label="Navn" autocomplete="name" :disabled="saving" />
+
+      <AppInput
+        v-model="email"
+        label="Email"
+        type="email"
+        autocomplete="email"
+        :disabled="saving"
+      />
 
       <AppSelect
         v-model="selectedRole"

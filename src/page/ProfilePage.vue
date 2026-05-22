@@ -40,7 +40,7 @@ async function handleSave() {
   }
 
   if (!trimmedEmail) {
-    validationError.value = 'E-post kan ikke være tom.'
+    validationError.value = 'Email kan ikke være tom.'
     return
   }
 
@@ -65,8 +65,8 @@ async function handleSave() {
   <div class="flex min-h-full flex-1 flex-col px-4 py-8 lg:px-10 lg:py-19">
     <header class="space-y-2">
       <h1 class="text-2xl font-semibold text-gray-900 lg:text-3xl">Profil</h1>
-      <p class="text-sm text-gray-500">Oppdater navn og e-postadresse for kontoen din.</p>
-    </header>
+      <p class="text-sm text-gray-500">Oppdater navn og email for kontoen din.</p>
+    </header> 
 
     <section v-if="currentUser" class="mt-8 max-w-xl">
       <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -94,7 +94,7 @@ async function handleSave() {
           />
           <AppInput
             v-model="email"
-            label="E-post"
+            label="Email"
             type="email"
             autocomplete="email"
             :disabled="updatingProfile"
