@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import TaskBoardCard from '@/components/TaskBoardCard.vue'
+import { useUsersStore } from '@/stores/users'
 import type { AuthUser, Task, TaskStatus } from '@/types'
 import { TASK_STATUSES } from '@/types'
 import { taskStatusLabel } from '@/utils/taskLabels'
@@ -12,9 +14,7 @@ const props = defineProps<{
   error?: string | null
 }>()
 
-const userNameById = computed(() =>
-  Object.fromEntries(props.users.map((user) => [user.id, user.name])),
-)
+const { userNameById } = storeToRefs(useUsersStore())
 
 const tasksByStatus = computed(() => {
   const grouped = Object.fromEntries(TASK_STATUSES.map((status) => [status, [] as Task[]])) as Record<
@@ -35,13 +35,14 @@ function assignedEmployeeName(employeeId: string) {
 </script>
 
 <template>
-  <p v-if="loading" class="text-sm text-gray-500">Laster oppgaver…</p>
-  <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
+  <div>
+    <p v-if="loading" class="text-sm text-gray-500">Laster oppgaver…</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
 
-  <div
-    v-else
-    class="grid gap-4 overflow-x-auto pb-2 lg:grid-cols-4"
-  >
+    <div
+      v-else
+      class="grid gap-4 overflow-x-auto pb-2 lg:grid-cols-4"
+    >
     <section
       v-for="status in TASK_STATUSES"
       :key="status"
@@ -72,5 +73,6 @@ function assignedEmployeeName(employeeId: string) {
         </p>
       </div>
     </section>
+    </div>
   </div>
 </template>

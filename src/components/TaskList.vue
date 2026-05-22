@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useUsersStore } from '@/stores/users'
 import type { AuthUser, Task } from '@/types'
 import { taskRouteForTask } from '@/utils/roleRoutes'
 import { formatNorwegianDate } from '@/utils/formatDate'
@@ -14,7 +14,7 @@ import {
   taskStatusLabel,
 } from '@/utils/taskLabels'
 
-const props = defineProps<{
+defineProps<{
   tasks: Task[]
   users: AuthUser[]
   loading?: boolean
@@ -23,10 +23,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const { currentUser } = storeToRefs(useAuthStore())
-
-const userNameById = computed(() =>
-  Object.fromEntries(props.users.map((user) => [user.id, user.name])),
-)
+const { userNameById } = storeToRefs(useUsersStore())
 
 function userName(userId: string | null) {
   if (!userId) return '—'
@@ -43,6 +40,7 @@ function openTask(task: Task) {
 </script>
 
 <template>
+  <div>
   <p v-if="loading" class="text-sm text-gray-500">Laster oppgaver…</p>
   <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
   <p v-else-if="tasks.length === 0" class="text-sm text-gray-500">Ingen oppgaver funnet.</p>
@@ -187,4 +185,5 @@ function openTask(task: Task) {
       </table>
     </div>
   </template>
+  </div>
 </template>

@@ -18,14 +18,27 @@ watch(
   (employeeId) => {
     if (employeeId) {
       tasksStore.subscribeEmployeeTasks(employeeId)
-      usersStore.subscribeEmployeeTaskUsers()
     }
+  },
+  { immediate: true },
+)
+
+watch(
+  () =>
+    [
+      ...new Set(
+        tasks.value.flatMap((task) => [task.createdBy, task.assignedEmployeeId].filter(Boolean)),
+      ),
+    ] as string[],
+  (userIds) => {
+    usersStore.syncLiveUserNameWatchers(userIds)
   },
   { immediate: true },
 )
 
 onUnmounted(() => {
   tasksStore.unsubscribeTasksListener()
+  usersStore.clearLiveUserNameWatchers()
 })
 </script>
 

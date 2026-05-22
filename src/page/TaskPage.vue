@@ -87,6 +87,12 @@ const assignedName = computed(() => {
   return userNameById.value[employeeId] ?? 'Ukjent'
 })
 
+const createdByName = computed(() => {
+  const creatorId = currentTask.value?.createdBy
+  if (!creatorId) return '—'
+  return userNameById.value[creatorId] ?? 'Ukjent'
+})
+
 const optionalStatusOptions = computed(() => [
   { value: 'not_started', label: taskStatusLabel('not_started') },
   { value: 'pending_approval', label: taskStatusLabel('pending_approval') },
@@ -124,6 +130,7 @@ watch(
     const relatedIds = [
       currentProject.value?.projectLeaderId,
       currentTask.value?.assignedEmployeeId,
+      currentTask.value?.createdBy,
     ]
     return [...new Set([...authorIds, ...relatedIds].filter(Boolean))] as string[]
   },
@@ -560,6 +567,10 @@ async function reviewTask(approved: boolean) {
               <div class="flex items-center justify-between gap-4 px-5 py-3">
                 <dt class="text-sm text-gray-500">Tildelt til</dt>
                 <dd class="text-sm font-medium text-gray-900">{{ assignedName }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4 px-5 py-3">
+                <dt class="text-sm text-gray-500">Opprettet av</dt>
+                <dd class="text-sm font-medium text-gray-900">{{ createdByName }}</dd>
               </div>
               <div class="flex items-center justify-between gap-4 px-5 py-3">
                 <dt class="text-sm text-gray-500">Opprettet</dt>

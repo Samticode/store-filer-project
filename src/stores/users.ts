@@ -67,10 +67,6 @@ export const useUsersStore = defineStore('users', () => {
     subscribedToFullCollection = true
   }
 
-  function subscribeEmployeeTaskUsers() {
-    subscribeUsers()
-  }
-
   function syncLiveUserNameWatchers(userIds: string[]) {
     const wanted = new Set(userIds.filter(Boolean))
 
@@ -128,7 +124,6 @@ export const useUsersStore = defineStore('users', () => {
     loading,
     error,
     subscribeUsers,
-    subscribeEmployeeTaskUsers,
     syncLiveUserNameWatchers,
     clearLiveUserNameWatchers,
     unsubscribeUsersListener,
