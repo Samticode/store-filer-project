@@ -6,30 +6,35 @@ import TaskPage from '@/page/TaskPage.vue'
 import type { Task } from '@/types'
 import type { Timestamp } from 'firebase/firestore'
 
-const mockUpdateTaskStatus = vi.fn()
 const mockSubscribeTask = vi.fn()
 const mockUnsubscribeTaskListener = vi.fn()
-const mockSubscribeUsers = vi.fn()
-const mockUnsubscribeUsersListener = vi.fn()
+const mockSubscribeTaskUpdates = vi.fn()
+const mockUnsubscribeTaskUpdatesListener = vi.fn()
+const mockRecordStatusChange = vi.fn()
+const mockSubscribeProject = vi.fn()
+const mockUnsubscribeProjectListener = vi.fn()
+const mockSyncLiveUserNameWatchers = vi.fn()
+const mockClearLiveUserNameWatchers = vi.fn()
 
 const mockCurrentTask = ref<Task | null>(null)
-const mockUpdatingStatus = ref(false)
-const mockUpdateStatusError = ref<string | null>(null)
 const mockCurrentTaskLoading = ref(false)
 const mockCurrentTaskError = ref<string | null>(null)
 const mockCurrentUser = ref<{ id: string; role: string; email: string; name: string } | null>(null)
-const mockUsers = ref<{ id: string; name: string; role: string; email: string }[]>([])
+const mockCurrentProject = ref<{ id: string; projectLeaderId: string } | null>(null)
+const mockUpdates = ref<unknown[]>([])
+const mockUpdatesLoading = ref(false)
+const mockCreatingUpdate = ref(false)
+const mockCreateError = ref<string | null>(null)
+const mockUpdatesError = ref<string | null>(null)
+const mockUserNameById = ref<Record<string, string>>({})
 
 vi.mock('@/stores/tasks', () => ({
   useTasksStore: vi.fn(() => ({
     currentTask: mockCurrentTask,
-    updatingStatus: mockUpdatingStatus,
-    updateStatusError: mockUpdateStatusError,
     currentTaskLoading: mockCurrentTaskLoading,
     currentTaskError: mockCurrentTaskError,
     subscribeTask: mockSubscribeTask,
     unsubscribeTaskListener: mockUnsubscribeTaskListener,
-    updateTaskStatus: mockUpdateTaskStatus,
   })),
 }))
 
@@ -39,11 +44,32 @@ vi.mock('@/stores/auth', () => ({
   })),
 }))
 
+vi.mock('@/stores/projects', () => ({
+  useProjectsStore: vi.fn(() => ({
+    currentProject: mockCurrentProject,
+    subscribeProject: mockSubscribeProject,
+    unsubscribeProjectListener: mockUnsubscribeProjectListener,
+  })),
+}))
+
+vi.mock('@/stores/taskUpdates', () => ({
+  useTaskUpdatesStore: vi.fn(() => ({
+    updates: mockUpdates,
+    loading: mockUpdatesLoading,
+    creating: mockCreatingUpdate,
+    createError: mockCreateError,
+    error: mockUpdatesError,
+    subscribeTaskUpdates: mockSubscribeTaskUpdates,
+    unsubscribeTaskUpdatesListener: mockUnsubscribeTaskUpdatesListener,
+    recordStatusChange: mockRecordStatusChange,
+  })),
+}))
+
 vi.mock('@/stores/users', () => ({
   useUsersStore: vi.fn(() => ({
-    users: mockUsers,
-    subscribeUsers: mockSubscribeUsers,
-    unsubscribeUsersListener: mockUnsubscribeUsersListener,
+    userNameById: mockUserNameById,
+    syncLiveUserNameWatchers: mockSyncLiveUserNameWatchers,
+    clearLiveUserNameWatchers: mockClearLiveUserNameWatchers,
   })),
 }))
 
@@ -78,7 +104,7 @@ function mountTaskPage() {
   return mount(TaskPage, {
     global: {
       plugins: [createPinia()],
-      stubs: { AppSelect: true },
+      stubs: { AppSelect: true, UserAvatar: true },
     },
   })
 }
@@ -88,13 +114,17 @@ describe('TaskPage', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     mockCurrentTask.value = null
-    mockUpdatingStatus.value = false
-    mockUpdateStatusError.value = null
     mockCurrentTaskLoading.value = false
     mockCurrentTaskError.value = null
     mockCurrentUser.value = null
-    mockUsers.value = []
-    mockUpdateTaskStatus.mockResolvedValue(undefined)
+    mockCurrentProject.value = null
+    mockUpdates.value = []
+    mockUpdatesLoading.value = false
+    mockCreatingUpdate.value = false
+    mockCreateError.value = null
+    mockUpdatesError.value = null
+    mockUserNameById.value = {}
+    mockRecordStatusChange.mockResolvedValue(undefined)
   })
 
   it('viser oppgavetittel og beskrivelse når oppgave er lastet', () => {
@@ -114,38 +144,51 @@ describe('TaskPage', () => {
     expect(wrapper.text()).toContain('Begynn oppgave')
   })
 
-  it('klikk på "Begynn oppgave" kaller updateTaskStatus med in_progress', async () => {
+  it('klikk på "Begynn oppgave" kaller recordStatusChange med in_progress', async () => {
     mockCurrentTask.value = makeTask({ status: 'not_started', assignedEmployeeId: 'employee-1' })
     mockCurrentUser.value = { id: 'employee-1', name: 'Ansatt', email: 'a@e.com', role: 'employee' }
 
     const wrapper = mountTaskPage()
-    await wrapper.find('button').trigger('click')
+    const startButton = wrapper.findAll('button').find((button) => button.text().includes('Begynn oppgave'))
+    await startButton!.trigger('click')
     await flushPromises()
 
-    expect(mockUpdateTaskStatus).toHaveBeenCalledWith('task-1', 'in_progress')
+    expect(mockRecordStatusChange).toHaveBeenCalledWith({
+      taskId: 'task-1',
+      projectId: 'proj-1',
+      text: 'Begynte oppgaven',
+      createdBy: 'employee-1',
+      statusChange: 'in_progress',
+    })
   })
 
-  it('klikk på "Fullfør oppgave" kaller updateTaskStatus med pending_approval', async () => {
+  it('klikk på "Fullfør oppgave" kaller recordStatusChange med pending_approval', async () => {
     mockCurrentTask.value = makeTask({ status: 'in_progress', assignedEmployeeId: 'employee-1' })
     mockCurrentUser.value = { id: 'employee-1', name: 'Ansatt', email: 'a@e.com', role: 'employee' }
 
     const wrapper = mountTaskPage()
-    const buttons = wrapper.findAll('button')
-    const fullfør = buttons.find((b) => b.text().includes('Fullfør'))
-    await fullfør!.trigger('click')
+    const completeButton = wrapper.findAll('button').find((button) => button.text().includes('Fullfør oppgave'))
+    await completeButton!.trigger('click')
     await flushPromises()
 
-    expect(mockUpdateTaskStatus).toHaveBeenCalledWith('task-1', 'pending_approval')
+    expect(mockRecordStatusChange).toHaveBeenCalledWith({
+      taskId: 'task-1',
+      projectId: 'proj-1',
+      text: 'Sendte oppgaven til godkjenning',
+      createdBy: 'employee-1',
+      statusChange: 'pending_approval',
+    })
   })
 
-  it('viser feilmelding når updateTaskStatus feiler', async () => {
+  it('viser feilmelding når recordStatusChange feiler', async () => {
     mockCurrentTask.value = makeTask({ status: 'not_started', assignedEmployeeId: 'employee-1' })
     mockCurrentUser.value = { id: 'employee-1', name: 'Ansatt', email: 'a@e.com', role: 'employee' }
-    mockUpdateTaskStatus.mockRejectedValue(new Error('Feil'))
-    mockUpdateStatusError.value = 'Kunne ikke oppdatere status. Prøv igjen.'
+    mockRecordStatusChange.mockRejectedValue(new Error('Feil'))
+    mockCreateError.value = 'Kunne ikke oppdatere status. Prøv igjen.'
 
     const wrapper = mountTaskPage()
-    await wrapper.find('button').trigger('click')
+    const startButton = wrapper.findAll('button').find((button) => button.text().includes('Begynn oppgave'))
+    await startButton!.trigger('click')
     await flushPromises()
 
     expect(wrapper.text()).toContain('Kunne ikke oppdatere status. Prøv igjen.')

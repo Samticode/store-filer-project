@@ -8,6 +8,14 @@ export const mockGetDoc = vi.fn()
 export const mockSetDoc = vi.fn()
 export const mockAddDoc = vi.fn()
 export const mockUpdateDoc = vi.fn()
+export const mockBatchSet = vi.fn()
+export const mockBatchUpdate = vi.fn()
+export const mockBatchCommit = vi.fn()
+export const mockWriteBatch = vi.fn(() => ({
+  set: mockBatchSet,
+  update: mockBatchUpdate,
+  commit: mockBatchCommit,
+}))
 export const mockRouterReplace = vi.fn()
 
 export const authStateCallback = vi.fn()
@@ -71,6 +79,7 @@ vi.mock('firebase/firestore', () => ({
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
   addDoc: (...args: unknown[]) => mockAddDoc(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
+  writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }))
 
 vi.mock('@/router', () => ({
