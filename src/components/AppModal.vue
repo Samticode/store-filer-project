@@ -74,7 +74,10 @@ onUnmounted(() => {
           :class="sizeClasses[size]"
           @click.stop
         >
-          <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-4 py-4">
+          <div
+            class="flex items-start justify-between gap-4 px-4 py-4"
+            :class="{ 'border-b border-gray-200': $slots.default }"
+          >
             <div class="min-w-0">
               <h2 id="modal-title" class="text-lg font-semibold text-gray-900">
                 {{ title }}
@@ -93,13 +96,14 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <div class="px-4 py-5">
+          <div v-if="$slots.default" class="px-4 py-5">
             <slot />
           </div>
 
           <div
             v-if="$slots.footer"
-            class="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-4"
+            class="flex items-center justify-end gap-3 border-t border-gray-200 px-4 py-4"
+            :class="{ 'bg-gray-50': $slots.default }"
           >
             <slot name="footer" />
           </div>

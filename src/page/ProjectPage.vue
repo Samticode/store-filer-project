@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { CheckCircle, Pencil } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import AddTaskModal, { type CreateTaskPayload } from '@/components/AddTaskModal.vue'
+import AppConfirmModal from '@/components/AppConfirmModal.vue'
 import EditProjectModal, { type EditProjectPayload } from '@/components/EditProjectModal.vue'
 import ProjectTasksSection from '@/components/ProjectTasksSection.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -43,6 +44,7 @@ const canFinishProject = computed(
 const newTaskDisabledTooltip = 'Statusen er ikke aktiv, nye oppgaver er pauset.'
 
 const isEditModalOpen = ref(false)
+const isFinishConfirmOpen = ref(false)
 const isAddTaskModalOpen = ref(false)
 const editError = ref<string | null>(null)
 const finishError = ref<string | null>(null)
@@ -75,6 +77,11 @@ function openAddTaskModal() {
   isAddTaskModalOpen.value = true
 }
 
+function openFinishConfirm() {
+  finishError.value = null
+  isFinishConfirmOpen.value = true
+}
+
 async function handleFinishProject() {
   if (!currentProject.value) return
 
@@ -86,6 +93,7 @@ async function handleFinishProject() {
       projectLeaderId: currentProject.value.projectLeaderId,
       status: PROJECT_STATUS_FINISHED,
     })
+    isFinishConfirmOpen.value = false
   } catch {
     finishError.value = projectsStore.updateError
   }
@@ -155,13 +163,12 @@ async function handleCreateTask(payload: CreateTaskPayload) {
               class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-green-800 px-8 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
 
               :disabled="updating"
-              @click="handleFinishProject"
+              @click="openFinishConfirm"
             >
               <CheckCircle :size="16" />
-              <span>{{ updating ? 'Lagrer…' : 'Marker som fullført' }}</span>
+              <span>Marker som fullført</span>
             </button>
           </div>
-          <p v-if="finishError" class="text-sm text-red-600">{{ finishError }}</p>
         </div>
         <div
           v-else-if="canCreateTasks"
@@ -195,6 +202,17 @@ async function handleCreateTask(payload: CreateTaskPayload) {
         />
       </section>
     </template>
+
+    <AppConfirmModal
+      v-if="canEdit"
+      v-model="isFinishConfirmOpen"
+      title="Marker prosjekt som fullført?"
+      description="Prosjektlederen kan ikke lenger opprette nye oppgaver. Du kan gjenåpne prosjektet senere via Rediger."
+      confirm-label="Marker som fullført"
+      :loading="updating"
+      :error="finishError"
+      @confirm="handleFinishProject"
+    />
 
     <EditProjectModal
       v-if="canEdit"
