@@ -19,3 +19,25 @@ export function projectStatusLabel(status: ProjectStatus) {
 export function projectStatusBadgeClass(status: ProjectStatus) {
   return PROJECT_STATUS_BADGE_CLASSES[status]
 }
+
+export const MANAGEABLE_PROJECT_STATUSES = ['active', 'paused'] as const satisfies readonly ProjectStatus[]
+
+export function manageableProjectStatusOptions() {
+  return MANAGEABLE_PROJECT_STATUSES.map((status) => ({
+    value: status,
+    label: projectStatusLabel(status),
+  }))
+}
+
+export function editProjectStatusOptions(currentStatus?: ProjectStatus) {
+  const options = manageableProjectStatusOptions()
+
+  if (currentStatus === 'finished') {
+    return [
+      { value: 'finished', label: projectStatusLabel('finished'), disabled: true },
+      ...options,
+    ]
+  }
+
+  return options
+}

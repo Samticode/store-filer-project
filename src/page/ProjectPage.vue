@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Pencil } from '@lucide/vue'
+import { CheckCircle, Pencil } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import AddTaskModal, { type CreateTaskPayload } from '@/components/AddTaskModal.vue'
 import EditProjectModal, { type EditProjectPayload } from '@/components/EditProjectModal.vue'
@@ -10,7 +10,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
 import { useUsersStore } from '@/stores/users'
-import { hasUserRole } from '@/types'
+import { hasUserRole, PROJECT_STATUS_ACTIVE, PROJECT_STATUS_FINISHED } from '@/types'
+import { projectStatusBadgeClass, projectStatusLabel } from '@/utils/projectLabels'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -35,10 +36,16 @@ const canCreateTasks = computed(
     currentUser.value.role === 'projectLeader' &&
     currentProject.value?.projectLeaderId === currentUser.value.id,
 )
+const isProjectActive = computed(() => currentProject.value?.status === PROJECT_STATUS_ACTIVE)
+const canFinishProject = computed(
+  () => canEdit.value && currentProject.value?.status !== PROJECT_STATUS_FINISHED,
+)
+const newTaskDisabledTooltip = 'Statusen er ikke aktiv, nye oppgaver er pauset.'
 
 const isEditModalOpen = ref(false)
 const isAddTaskModalOpen = ref(false)
 const editError = ref<string | null>(null)
+const finishError = ref<string | null>(null)
 const createTaskError = ref<string | null>(null)
 
 watch(
@@ -63,8 +70,25 @@ function openEditModal() {
 }
 
 function openAddTaskModal() {
+  if (!isProjectActive.value) return
   createTaskError.value = null
   isAddTaskModalOpen.value = true
+}
+
+async function handleFinishProject() {
+  if (!currentProject.value) return
+
+  finishError.value = null
+  try {
+    await projectsStore.updateProject(currentProject.value.id, {
+      name: currentProject.value.name,
+      description: currentProject.value.description,
+      projectLeaderId: currentProject.value.projectLeaderId,
+      status: PROJECT_STATUS_FINISHED,
+    })
+  } catch {
+    finishError.value = projectsStore.updateError
+  }
 }
 
 async function handleSave(payload: EditProjectPayload) {
@@ -100,31 +124,66 @@ async function handleCreateTask(payload: CreateTaskPayload) {
     <template v-else-if="currentProject">
       <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="min-w-0 space-y-2">
-          <h1 class="max-w-5xl line-clamp-2 text-2xl font-semibold text-gray-900 lg:text-3xl">
-            {{ currentProject.name }}
-          </h1>
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 class="max-w-5xl line-clamp-2 text-2xl font-semibold text-gray-900 lg:text-3xl">
+              {{ currentProject.name }}
+            </h1>
+            <span
+              class="inline-flex items-center rounded-sm px-2.5 py-0.5 text-xs font-medium"
+              :class="projectStatusBadgeClass(currentProject.status)"
+            >
+              {{ projectStatusLabel(currentProject.status) }}
+            </span>
+          </div>
           <p class="max-w-6xl line-clamp-4 text-sm text-gray-500">
             {{ currentProject.description }}
           </p>
         </div>
-        <button
-          v-if="canEdit"
-          type="button"
-          class="flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 lg:w-auto"
-          @click="openEditModal"
-        >
-          <Pencil :size="16" />
-          <span>Rediger</span>
-        </button>
-        <button
+        <div v-if="canEdit" class="flex w-full shrink-0 flex-col gap-2 lg:w-auto">
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 sm:w-auto"
+              @click="openEditModal"
+            >
+              <Pencil :size="16" />
+              <span>Rediger</span>
+            </button>
+            <button
+              v-if="canFinishProject"
+              type="button"
+              class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-green-800 px-8 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+
+              :disabled="updating"
+              @click="handleFinishProject"
+            >
+              <CheckCircle :size="16" />
+              <span>{{ updating ? 'Lagrer…' : 'Marker som fullført' }}</span>
+            </button>
+          </div>
+          <p v-if="finishError" class="text-sm text-red-600">{{ finishError }}</p>
+        </div>
+        <div
           v-else-if="canCreateTasks"
-          type="button"
-          class="flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 lg:w-auto"
-          @click="openAddTaskModal"
+          class="group relative inline-flex w-full lg:w-auto"
         >
-          <span class="text-lg">+</span>
-          <span>Ny oppgave</span>
-        </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+            :disabled="!isProjectActive"
+            @click="openAddTaskModal"
+          >
+            <span class="text-lg">+</span>
+            <span>Ny oppgave</span>
+          </button>
+          <span
+            v-if="!isProjectActive"
+            role="tooltip"
+            class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-max max-w-56 -translate-x-1/2 rounded-md bg-gray-900 px-3 py-1.5 text-center text-xs text-white group-hover:block"
+          >
+            {{ newTaskDisabledTooltip }}
+          </span>
+        </div>
       </header>
 
       <section class="mt-8">

@@ -1,6 +1,6 @@
 export type { AuthUser, AuthUserProfile, UserRole } from './auth'
 export { USERS_COLLECTION, USER_ROLES, hasUserRole } from './auth'
-export type { Project, ProjectData, ProjectStatus } from './project'
+export type { Project, ProjectData, ProjectUpdateData, ProjectStatus } from './project'
 export {
   PROJECTS_COLLECTION,
   PROJECT_STATUSES,

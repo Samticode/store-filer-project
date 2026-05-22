@@ -8,6 +8,7 @@ const projectData = {
   name: 'Testprosjekt',
   description: 'En beskrivelse',
   projectLeaderId: 'leader-1',
+  status: 'paused' as const,
 }
 
 describe('useProjectsStore', () => {
@@ -74,6 +75,7 @@ describe('useProjectsStore', () => {
           name: 'Testprosjekt',
           description: 'En beskrivelse',
           projectLeaderId: 'leader-1',
+          status: 'paused',
           updatedAt: expect.anything(),
         }),
       )

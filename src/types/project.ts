@@ -14,6 +14,10 @@ export interface ProjectData {
   projectLeaderId: string
 }
 
+export type ProjectUpdateData = ProjectData & {
+  status: ProjectStatus
+}
+
 export type Project = ProjectData & {
   id: string
   status: ProjectStatus

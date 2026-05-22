@@ -3,12 +3,14 @@ import { computed, ref, watch } from 'vue'
 import AppInput from '@/components/AppInput.vue'
 import AppModal from '@/components/AppModal.vue'
 import AppSelect from '@/components/AppSelect.vue'
-import type { AuthUser, Project } from '@/types'
+import type { AuthUser, Project, ProjectStatus } from '@/types'
+import { editProjectStatusOptions } from '@/utils/projectLabels'
 
 export type EditProjectPayload = {
   name: string
   description: string
   projectLeaderId: string
+  status: ProjectStatus
 }
 
 const open = defineModel<boolean>({ required: true })
@@ -29,7 +31,10 @@ const emit = defineEmits<{
 const name = ref('')
 const description = ref('')
 const projectLeaderId = ref('')
+const status = ref<ProjectStatus>('active')
 const validationError = ref<string | null>(null)
+
+const statusOptions = computed(() => editProjectStatusOptions(props.project?.status))
 
 const projectLeaderOptions = computed(() => {
   if (props.leadersLoading) {
@@ -63,6 +68,7 @@ watch(
     name.value = project?.name ?? ''
     description.value = project?.description ?? ''
     projectLeaderId.value = project?.projectLeaderId ?? ''
+    status.value = project?.status ?? 'active'
     validationError.value = null
   },
   { immediate: true },
@@ -94,6 +100,7 @@ function handleSave() {
     name: trimmedName,
     description: trimmedDescription,
     projectLeaderId: projectLeaderId.value,
+    status: status.value,
   })
 }
 </script>
@@ -103,7 +110,7 @@ function handleSave() {
     v-model="open"
     size="md"
     title="Rediger prosjekt"
-    description="Oppdater prosjektets navn, beskrivelse og prosjektleder."
+    description="Oppdater prosjektets navn, beskrivelse, prosjektleder og status."
   >
     <form v-if="project" class="space-y-4" @submit.prevent="handleSave">
       <AppInput
@@ -133,6 +140,14 @@ function handleSave() {
         placeholder="Velg prosjektleder"
         :options="projectLeaderOptions"
         :disabled="saving || leadersLoading || projectLeaders.length === 0"
+      />
+
+      <AppSelect
+        v-model="status"
+        label="Status"
+        placeholder="Velg status"
+        :options="statusOptions"
+        :disabled="saving"
       />
 
       <p v-if="leadersError" class="text-sm text-red-600">{{ leadersError }}</p>

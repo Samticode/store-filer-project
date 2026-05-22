@@ -12,7 +12,7 @@ import {
   type Query,
 } from 'firebase/firestore'
 import { useCollection, useDocument, useFirestore } from 'vuefire'
-import { PROJECTS_COLLECTION, PROJECT_STATUS_ACTIVE, type Project, type ProjectData } from '@/types'
+import { PROJECTS_COLLECTION, PROJECT_STATUS_ACTIVE, type Project, type ProjectData, type ProjectUpdateData } from '@/types'
 
 function sortProjects(projects: Project[]) {
   return [...projects].sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
@@ -90,7 +90,7 @@ export const useProjectsStore = defineStore('projects', () => {
     currentProjectId.value = null
   }
 
-  async function updateProject(projectId: string, data: ProjectData) {
+  async function updateProject(projectId: string, data: ProjectUpdateData) {
     updating.value = true
     updateError.value = null
     try {
