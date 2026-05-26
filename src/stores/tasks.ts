@@ -23,6 +23,8 @@ export const useTasksStore = defineStore('tasks', () => {
   const createError = ref<string | null>(null)
   const updatingStatus = ref(false)
   const updateStatusError = ref<string | null>(null)
+  const updating = ref(false)
+  const updateError = ref<string | null>(null)
 
   const tasksSource = ref<Query | null>(null)
   const tasksCollection = useCollection<Task>(tasksSource)
@@ -135,6 +137,27 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  async function updateTask(taskId: string, projectId: string, data: TaskData) {
+    updating.value = true
+    updateError.value = null
+    try {
+      await updateDoc(doc(db, TASKS_COLLECTION, taskId), {
+        ...data,
+        updatedAt: serverTimestamp(),
+      })
+
+      await updateDoc(doc(db, PROJECTS_COLLECTION, projectId), {
+        updatedAt: serverTimestamp(),
+      })
+    } catch (e) {
+      console.error('Kunne ikke oppdatere oppgave:', e)
+      updateError.value = 'Kunne ikke oppdatere oppgave. Prøv igjen.'
+      throw e
+    } finally {
+      updating.value = false
+    }
+  }
+
   return {
     tasks,
     currentTask,
@@ -142,10 +165,12 @@ export const useTasksStore = defineStore('tasks', () => {
     currentTaskLoading,
     creating,
     updatingStatus,
+    updating,
     error,
     currentTaskError,
     createError,
     updateStatusError,
+    updateError,
     subscribeProjectTasks,
     subscribeEmployeeTasks,
     unsubscribeTasksListener,
@@ -153,5 +178,6 @@ export const useTasksStore = defineStore('tasks', () => {
     unsubscribeTaskListener,
     createTask,
     updateTaskStatus,
+    updateTask,
   }
 })

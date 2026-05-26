@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Camera, Check, Paperclip, Send, X } from '@lucide/vue'
+import { Camera, Check, Paperclip, Pencil, Send, X } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import AppSelect from '@/components/AppSelect.vue'
+import EditTaskModal, { type EditTaskPayload } from '@/components/EditTaskModal.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
@@ -14,6 +15,7 @@ import {
   TASK_STATUS_IN_PROGRESS,
   TASK_STATUS_NOT_STARTED,
   TASK_STATUS_PENDING_APPROVAL,
+  TASK_STATUS_APPROVED,
   type TaskStatus,
   hasUserRole,
 } from '@/types'
@@ -38,7 +40,7 @@ const taskUpdatesStore = useTaskUpdatesStore()
 const usersStore = useUsersStore()
 const { currentUser } = storeToRefs(authStore)
 const { currentProject } = storeToRefs(projectsStore)
-const { currentTask, currentTaskLoading, currentTaskError } = storeToRefs(tasksStore)
+const { currentTask, currentTaskLoading, currentTaskError, updating } = storeToRefs(tasksStore)
 const {
   updates,
   loading: updatesLoading,
@@ -46,7 +48,7 @@ const {
   createError,
   error: updatesError,
 } = storeToRefs(taskUpdatesStore)
-const { userNameById } = storeToRefs(usersStore)
+const { userNameById, employees, loading: usersLoading, error: usersError } = storeToRefs(usersStore)
 
 const taskId = computed(() => route.params.taskId as string)
 const statusError = ref<string | null>(null)
@@ -58,6 +60,8 @@ const imageInputRef = ref<HTMLInputElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const submitError = ref<string | null>(null)
 const reviewError = ref<string | null>(null)
+const isEditModalOpen = ref(false)
+const editTaskError = ref<string | null>(null)
 
 const isAssignedEmployee = computed(
   () =>
@@ -79,6 +83,12 @@ const showApprovalCard = computed(
   () =>
     isTaskProjectLeader.value &&
     currentTask.value?.status === TASK_STATUS_PENDING_APPROVAL,
+)
+
+const canEditTask = computed(
+  () =>
+    isTaskProjectLeader.value &&
+    currentTask.value?.status !== TASK_STATUS_APPROVED,
 )
 
 const assignedName = computed(() => {
@@ -243,6 +253,23 @@ async function reviewTask(approved: boolean) {
     reviewError.value = taskUpdatesStore.createError
   }
 }
+
+function openEditModal() {
+  editTaskError.value = null
+  isEditModalOpen.value = true
+}
+
+async function handleSaveTask(payload: EditTaskPayload) {
+  if (!currentTask.value) return
+
+  editTaskError.value = null
+  try {
+    await tasksStore.updateTask(currentTask.value.id, currentTask.value.projectId, payload)
+    isEditModalOpen.value = false
+  } catch {
+    editTaskError.value = tasksStore.updateError
+  }
+}
 </script>
 
 <template>
@@ -251,10 +278,20 @@ async function reviewTask(approved: boolean) {
     <p v-else-if="currentTaskError" class="text-sm text-red-600">{{ currentTaskError }}</p>
 
     <template v-else-if="currentTask">
-      <header>
+      <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <h1 class="max-w-5xl line-clamp-2 text-2xl font-semibold text-gray-900 lg:text-3xl">
           {{ currentTask.title }}
         </h1>
+        <div v-if="canEditTask" class="flex w-full shrink-0 lg:w-auto">
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 sm:w-auto"
+            @click="openEditModal"
+          >
+            <Pencil :size="16" />
+            <span>Rediger</span>
+          </button>
+        </div>
       </header>
 
       <section class="mt-8">
@@ -588,6 +625,18 @@ async function reviewTask(approved: boolean) {
           </article>
         </section>
       </section>
+
+      <EditTaskModal
+        v-if="canEditTask"
+        v-model="isEditModalOpen"
+        :task="currentTask"
+        :employees="employees"
+        :employees-loading="usersLoading"
+        :employees-error="usersError"
+        :saving="updating"
+        :error="editTaskError"
+        @save="handleSaveTask"
+      />
     </template>
   </div>
 </template>

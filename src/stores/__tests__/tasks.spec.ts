@@ -92,6 +92,53 @@ describe('useTasksStore', () => {
       expect(store.creating).toBe(false)
     })
   })
+
+  describe('updateTask', () => {
+    it('kaller updateDoc med riktig data og oppdaterer prosjektets updatedAt', async () => {
+      const store = useTasksStore()
+      await store.updateTask('task-1', 'proj-1', taskData)
+
+      expect(mockUpdateDoc).toHaveBeenCalledTimes(2)
+      expect(mockUpdateDoc).toHaveBeenCalledWith(
+        expect.objectContaining({ path: 'Tasks/task-1' }),
+        expect.objectContaining({
+          title: 'Testoppgave',
+          description: 'En beskrivelse',
+          priority: 'medium',
+          status: 'not_started',
+          assignedEmployeeId: 'employee-1',
+          updatedAt: expect.anything(),
+        }),
+      )
+      expect(mockUpdateDoc).toHaveBeenCalledWith(
+        expect.objectContaining({ path: 'Projects/proj-1' }),
+        expect.objectContaining({ updatedAt: expect.anything() }),
+      )
+    })
+
+    it('setter updating=true under kall og false etterpå', async () => {
+      const store = useTasksStore()
+      let duringCall = false
+
+      mockUpdateDoc.mockImplementation(async () => {
+        duringCall = store.updating
+      })
+
+      await store.updateTask('task-1', 'proj-1', taskData)
+
+      expect(duringCall).toBe(true)
+      expect(store.updating).toBe(false)
+    })
+
+    it('setter updateError og kaster feil ved Firestore-feil', async () => {
+      const store = useTasksStore()
+      mockUpdateDoc.mockRejectedValue(new Error('Firestore feil'))
+
+      await expect(store.updateTask('task-1', 'proj-1', taskData)).rejects.toThrow()
+      expect(store.updateError).toBe('Kunne ikke oppdatere oppgave. Prøv igjen.')
+      expect(store.updating).toBe(false)
+    })
+  })
 })
 
 describe('useTaskUpdatesStore', () => {

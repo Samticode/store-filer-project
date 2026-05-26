@@ -8,6 +8,7 @@ import type { Timestamp } from 'firebase/firestore'
 
 const mockSubscribeTask = vi.fn()
 const mockUnsubscribeTaskListener = vi.fn()
+const mockUpdateTask = vi.fn()
 const mockSubscribeTaskUpdates = vi.fn()
 const mockUnsubscribeTaskUpdatesListener = vi.fn()
 const mockRecordStatusChange = vi.fn()
@@ -27,14 +28,21 @@ const mockCreatingUpdate = ref(false)
 const mockCreateError = ref<string | null>(null)
 const mockUpdatesError = ref<string | null>(null)
 const mockUserNameById = ref<Record<string, string>>({})
+const mockEmployees = ref<{ id: string; name: string; role: string; email: string }[]>([])
+const mockUsersLoading = ref(false)
+const mockUsersError = ref<string | null>(null)
+const mockUpdating = ref(false)
 
 vi.mock('@/stores/tasks', () => ({
   useTasksStore: vi.fn(() => ({
     currentTask: mockCurrentTask,
     currentTaskLoading: mockCurrentTaskLoading,
     currentTaskError: mockCurrentTaskError,
+    updating: mockUpdating,
+    updateError: ref(null),
     subscribeTask: mockSubscribeTask,
     unsubscribeTaskListener: mockUnsubscribeTaskListener,
+    updateTask: mockUpdateTask,
   })),
 }))
 
@@ -68,6 +76,9 @@ vi.mock('@/stores/taskUpdates', () => ({
 vi.mock('@/stores/users', () => ({
   useUsersStore: vi.fn(() => ({
     userNameById: mockUserNameById,
+    employees: mockEmployees,
+    loading: mockUsersLoading,
+    error: mockUsersError,
     syncLiveUserNameWatchers: mockSyncLiveUserNameWatchers,
     clearLiveUserNameWatchers: mockClearLiveUserNameWatchers,
   })),
@@ -104,7 +115,7 @@ function mountTaskPage() {
   return mount(TaskPage, {
     global: {
       plugins: [createPinia()],
-      stubs: { AppSelect: true, UserAvatar: true },
+      stubs: { AppSelect: true, UserAvatar: true, EditTaskModal: true },
     },
   })
 }
@@ -124,6 +135,11 @@ describe('TaskPage', () => {
     mockCreateError.value = null
     mockUpdatesError.value = null
     mockUserNameById.value = {}
+    mockEmployees.value = []
+    mockUsersLoading.value = false
+    mockUsersError.value = null
+    mockUpdating.value = false
+    mockUpdateTask.mockResolvedValue(undefined)
     mockRecordStatusChange.mockResolvedValue(undefined)
   })
 
@@ -202,5 +218,35 @@ describe('TaskPage', () => {
 
     expect(wrapper.text()).not.toContain('Begynn oppgave')
     expect(wrapper.text()).not.toContain('Endre status')
+  })
+
+  it('prosjektleder for prosjektet ser Rediger-knappen', () => {
+    mockCurrentTask.value = makeTask()
+    mockCurrentUser.value = { id: 'leader-1', name: 'Leder', email: 'l@e.com', role: 'projectLeader' }
+    mockCurrentProject.value = { id: 'proj-1', projectLeaderId: 'leader-1' }
+
+    const wrapper = mountTaskPage()
+
+    expect(wrapper.text()).toContain('Rediger')
+  })
+
+  it('annen prosjektleder ser ikke Rediger-knappen', () => {
+    mockCurrentTask.value = makeTask()
+    mockCurrentUser.value = { id: 'other-leader', name: 'Annen leder', email: 'o@e.com', role: 'projectLeader' }
+    mockCurrentProject.value = { id: 'proj-1', projectLeaderId: 'leader-1' }
+
+    const wrapper = mountTaskPage()
+
+    expect(wrapper.text()).not.toContain('Rediger')
+  })
+
+  it('prosjektleder ser ikke Rediger-knappen når oppgaven er godkjent', () => {
+    mockCurrentTask.value = makeTask({ status: 'approved' })
+    mockCurrentUser.value = { id: 'leader-1', name: 'Leder', email: 'l@e.com', role: 'projectLeader' }
+    mockCurrentProject.value = { id: 'proj-1', projectLeaderId: 'leader-1' }
+
+    const wrapper = mountTaskPage()
+
+    expect(wrapper.text()).not.toContain('Rediger')
   })
 })
