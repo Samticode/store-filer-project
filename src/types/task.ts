@@ -29,6 +29,7 @@ export interface TaskData {
   priority: TaskPriority
   status: TaskStatus
   assignedEmployeeId: string
+  githubBranch?: string | null
 }
 
 export type Task = TaskData & {

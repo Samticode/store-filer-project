@@ -49,10 +49,26 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/Users/$(userId)).data.role == 'projectLeader';
     }
 
+    function isValidOptionalGithubRepo(data) {
+      return !('githubRepo' in data)
+        || data.githubRepo == null
+        || (data.githubRepo is string && data.githubRepo.size() > 0);
+    }
+
+    function isValidOptionalGithubBranch(data) {
+      return !('githubBranch' in data)
+        || data.githubBranch == null
+        || (data.githubBranch is string && data.githubBranch.size() > 0);
+    }
+
+    function clientUpdateHasValidGithubFlag(data) {
+      return !('isFromGithub' in data) || data.isFromGithub == false;
+    }
+
     function isValidProjectCreate() {
       let data = request.resource.data;
       return data.keys().hasAll(['name', 'description', 'projectLeaderId', 'status', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'createdAt', 'updatedAt', 'githubRepo'])
         && data.name is string
         && data.name.size() > 0
         && data.description is string
@@ -62,6 +78,7 @@ service cloud.firestore {
         && data.status == 'active'
         && isValidProjectStatus(data.status)
         && isProjectLeaderUser(data.projectLeaderId)
+        && isValidOptionalGithubRepo(data)
         && data.createdAt == request.time
         && data.updatedAt == request.time;
     }
@@ -69,7 +86,7 @@ service cloud.firestore {
     function isValidProjectUpdate() {
       let data = request.resource.data;
       let diff = request.resource.data.diff(resource.data);
-      return diff.affectedKeys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'updatedAt'])
+      return diff.affectedKeys().hasOnly(['name', 'description', 'projectLeaderId', 'status', 'updatedAt', 'githubRepo'])
         && data.name is string
         && data.name.size() > 0
         && data.description is string
@@ -78,6 +95,7 @@ service cloud.firestore {
         && data.projectLeaderId.size() > 0
         && isValidProjectStatus(data.status)
         && isProjectLeaderUser(data.projectLeaderId)
+        && isValidOptionalGithubRepo(data)
         && data.createdAt == resource.data.createdAt
         && data.updatedAt == request.time;
     }
@@ -141,6 +159,7 @@ service cloud.firestore {
           'updatedAt',
           'approvedBy',
           'approvedAt',
+          'githubBranch',
         ])
         && data.title is string
         && data.title.size() > 0
@@ -157,6 +176,7 @@ service cloud.firestore {
         && data.createdBy == request.auth.uid
         && isEmployeeUser(data.assignedEmployeeId)
         && ownsProject(data.projectId)
+        && isValidOptionalGithubBranch(data)
         && data.approvedBy == null
         && data.approvedAt == null
         && data.createdAt == request.time
@@ -258,7 +278,7 @@ service cloud.firestore {
       let diff = request.resource.data.diff(resource.data);
       return isTaskProjectLeader()
         && resource.data.status != 'approved'
-        && diff.affectedKeys().hasOnly(['title', 'description', 'priority', 'status', 'assignedEmployeeId', 'updatedAt'])
+        && diff.affectedKeys().hasOnly(['title', 'description', 'priority', 'status', 'assignedEmployeeId', 'updatedAt', 'githubBranch'])
         && data.title is string
         && data.title.size() > 0
         && data.description is string
@@ -269,6 +289,7 @@ service cloud.firestore {
         && data.assignedEmployeeId is string
         && data.assignedEmployeeId.size() > 0
         && isEmployeeUser(data.assignedEmployeeId)
+        && isValidOptionalGithubBranch(data)
         && data.updatedAt == request.time
         && data.projectId == resource.data.projectId
         && data.createdBy == resource.data.createdBy
@@ -327,6 +348,7 @@ service cloud.firestore {
           'imageUrl',
           'fileUrl',
           'fileName',
+          'isFromGithub',
         ])
         && data.keys().hasOnly([
           'text',
@@ -336,9 +358,12 @@ service cloud.firestore {
           'imageUrl',
           'fileUrl',
           'fileName',
+          'isFromGithub',
         ])
         && data.text is string
         && data.createdBy == request.auth.uid
+        && data.isFromGithub == false
+        && clientUpdateHasValidGithubFlag(data)
         && data.createdAt == request.time
         && (data.statusChange == null || isValidTaskStatus(data.statusChange))
         && (
@@ -370,6 +395,7 @@ service cloud.firestore {
           'imageUrl',
           'fileUrl',
           'fileName',
+          'isFromGithub',
         ])
         && data.keys().hasOnly([
           'text',
@@ -379,10 +405,13 @@ service cloud.firestore {
           'imageUrl',
           'fileUrl',
           'fileName',
+          'isFromGithub',
         ])
         && data.text is string
         && data.text.size() > 0
         && data.createdBy == request.auth.uid
+        && data.isFromGithub == false
+        && clientUpdateHasValidGithubFlag(data)
         && data.createdAt == request.time
         && (
           data.statusChange == 'approved'

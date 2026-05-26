@@ -12,6 +12,7 @@ export interface ProjectData {
   name: string
   description: string
   projectLeaderId: string
+  githubRepo?: string | null
 }
 
 export type ProjectUpdateData = ProjectData & {

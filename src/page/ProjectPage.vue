@@ -13,6 +13,7 @@ import { useTasksStore } from '@/stores/tasks'
 import { useUsersStore } from '@/stores/users'
 import { hasUserRole, PROJECT_STATUS_ACTIVE, PROJECT_STATUS_FINISHED } from '@/types'
 import { projectStatusBadgeClass, projectStatusLabel } from '@/utils/projectLabels'
+import { formatGithubRepoUrl } from '@/utils/github'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -38,6 +39,9 @@ const canCreateTasks = computed(
     currentProject.value?.projectLeaderId === currentUser.value.id,
 )
 const isProjectActive = computed(() => currentProject.value?.status === PROJECT_STATUS_ACTIVE)
+const hasGithubRepo = computed(
+  () => Boolean(currentProject.value?.githubRepo && currentProject.value.githubRepo.length > 0),
+)
 const canFinishProject = computed(
   () => canEdit.value && currentProject.value?.status !== PROJECT_STATUS_FINISHED,
 )
@@ -92,6 +96,7 @@ async function handleFinishProject() {
       description: currentProject.value.description,
       projectLeaderId: currentProject.value.projectLeaderId,
       status: PROJECT_STATUS_FINISHED,
+      githubRepo: currentProject.value.githubRepo ?? null,
     })
     isFinishConfirmOpen.value = false
   } catch {
@@ -145,6 +150,16 @@ async function handleCreateTask(payload: CreateTaskPayload) {
           </div>
           <p class="max-w-6xl line-clamp-4 text-sm text-gray-500">
             {{ currentProject.description }}
+          </p>
+          <p v-if="currentProject.githubRepo" class="text-sm">
+            <a
+              :href="formatGithubRepoUrl(currentProject.githubRepo)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-medium text-violet-700 hover:text-violet-600"
+            >
+              {{ formatGithubRepoUrl(currentProject.githubRepo) }}
+            </a>
           </p>
         </div>
         <div v-if="canEdit" class="flex w-full shrink-0 flex-col gap-2 lg:w-auto">
@@ -232,6 +247,7 @@ async function handleCreateTask(payload: CreateTaskPayload) {
       :employees="employees"
       :employees-loading="usersLoading"
       :employees-error="usersError"
+      :has-github-repo="hasGithubRepo"
       :saving="creatingTask"
       :error="createTaskError"
       @save="handleCreateTask"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Camera, Check, Paperclip, Pencil, Send, X } from '@lucide/vue'
+import { Camera, Check, GitCommitHorizontal, Paperclip, Pencil, Send, X } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import AppSelect from '@/components/AppSelect.vue'
 import EditTaskModal, { type EditTaskPayload } from '@/components/EditTaskModal.vue'
@@ -19,6 +19,10 @@ import {
   type TaskStatus,
   hasUserRole,
 } from '@/types'
+import {
+  GITHUB_COMMIT_UPDATE_TEXT,
+  GITHUB_UPDATE_LABEL,
+} from '@/utils/github'
 import { formatNorwegianDate, formatRelativeTimeNorwegian } from '@/utils/formatDate'
 import {
   taskPriorityBadgeClass,
@@ -89,6 +93,10 @@ const canEditTask = computed(
   () =>
     isTaskProjectLeader.value &&
     currentTask.value?.status !== TASK_STATUS_APPROVED,
+)
+
+const hasGithubRepo = computed(
+  () => Boolean(currentProject.value?.githubRepo && currentProject.value.githubRepo.length > 0),
 )
 
 const assignedName = computed(() => {
@@ -210,7 +218,8 @@ function resetUpdateForm() {
   submitError.value = null
 }
 
-function updateStatusDescription(statusChange: TaskStatus | null) {
+function updateStatusDescription(statusChange: TaskStatus | null, isFromGithub = false) {
+  if (isFromGithub) return GITHUB_COMMIT_UPDATE_TEXT
   if (!statusChange) return 'ingen status forandring'
   return `satte status til ${taskStatusLabel(statusChange)}`
 }
@@ -419,19 +428,33 @@ async function handleSaveTask(payload: EditTaskPayload) {
                     v-for="update in updates"
                     :key="update.id"
                     class="overflow-hidden rounded-md border-l-4 py-3 pl-4 pr-4"
-                    :class="taskUpdateCardClass(update.statusChange, update.text)"
+                    :class="taskUpdateCardClass(update.statusChange, update.text, update.isFromGithub)"
                   >
                     <div class="flex flex-wrap items-center gap-2">
-                      <UserAvatar :name="userNameById[update.createdBy] ?? 'Ukjent'" :scale="0.7" />
+                      <div
+                        v-if="update.isFromGithub"
+                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-700"
+                      >
+                        <GitCommitHorizontal :size="16" />
+                      </div>
+                      <UserAvatar
+                        v-else
+                        :name="userNameById[update.createdBy] ?? 'Ukjent'"
+                        :scale="0.7"
+                      />
                       <p class="min-w-0 text-sm text-gray-900">
-                        <span class="font-semibold">{{ userNameById[update.createdBy] ?? 'Ukjent' }}</span>
+                        <span class="font-semibold">{{
+                          update.isFromGithub ? GITHUB_UPDATE_LABEL : (userNameById[update.createdBy] ?? 'Ukjent')
+                        }}</span>
                         <span class="text-gray-400"> · </span>
                         <time class="text-gray-500">{{
                           formatRelativeTimeNorwegian(update.createdAt)
                         }}</time>
                         <span class="text-gray-400"> · </span>
-                        <span :class="taskUpdateStatusTextClass(update.statusChange, update.text)">{{
-                          updateStatusDescription(update.statusChange)
+                        <span
+                          :class="taskUpdateStatusTextClass(update.statusChange, update.text, update.isFromGithub)"
+                        >{{
+                          updateStatusDescription(update.statusChange, update.isFromGithub)
                         }}</span>
                       </p>
                     </div>
@@ -445,7 +468,7 @@ async function handleSaveTask(payload: EditTaskPayload) {
                       :src="update.imageUrl"
                       alt="Vedlagt bilde"
                       class="mt-3 max-h-64 rounded-md border object-contain"
-                      :class="taskUpdateAttachmentBorderClass(update.statusChange, update.text)"
+                      :class="taskUpdateAttachmentBorderClass(update.statusChange, update.text, update.isFromGithub)"
                     />
 
                     <a
@@ -454,7 +477,7 @@ async function handleSaveTask(payload: EditTaskPayload) {
                       target="_blank"
                       rel="noopener noreferrer"
                       class="mt-3 inline-flex items-center gap-2 text-sm font-medium"
-                      :class="taskUpdateLinkClass(update.statusChange, update.text)"
+                      :class="taskUpdateLinkClass(update.statusChange, update.text, update.isFromGithub)"
                     >
                       <Paperclip :size="14" />
                       {{ update.fileName ?? 'Last ned fil' }}
@@ -579,6 +602,10 @@ async function handleSaveTask(payload: EditTaskPayload) {
               <h2 class="text-sm font-semibold text-gray-900">Detaljer</h2>
             </div>
             <dl class="divide-y divide-gray-100">
+              <div v-if="currentTask.githubBranch" class="flex items-center justify-between gap-4 px-5 py-3">
+                <dt class="text-sm text-gray-500">GitHub branch</dt>
+                <dd class="text-sm font-medium text-violet-800">{{ currentTask.githubBranch }}</dd>
+              </div>
               <div class="flex items-center justify-between gap-4 px-5 py-3">
                 <dt class="text-sm text-gray-500">Status</dt>
                 <dd>
@@ -633,6 +660,7 @@ async function handleSaveTask(payload: EditTaskPayload) {
         :employees="employees"
         :employees-loading="usersLoading"
         :employees-error="usersError"
+        :has-github-repo="hasGithubRepo"
         :saving="updating"
         :error="editTaskError"
         @save="handleSaveTask"

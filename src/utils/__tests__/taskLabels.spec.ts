@@ -94,6 +94,10 @@ describe('taskUpdateCardClass', () => {
     expect(result).not.toContain('amber')
     expect(result).not.toContain('rose')
   })
+
+  it('GitHub-oppdatering → lilla ramme', () => {
+    expect(taskUpdateCardClass(null, '', true)).toContain('violet')
+  })
 })
 
 describe('taskUpdateAttachmentBorderClass', () => {
@@ -111,6 +115,10 @@ describe('taskUpdateAttachmentBorderClass', () => {
 
   it('standard oppdatering → grønn kantlinje', () => {
     expect(taskUpdateAttachmentBorderClass(null)).toContain('green')
+  })
+
+  it('GitHub-oppdatering → lilla kantlinje', () => {
+    expect(taskUpdateAttachmentBorderClass(null, '', true)).toContain('violet')
   })
 })
 
@@ -148,5 +156,11 @@ describe('taskUpdateStatusTextClass', () => {
     const cls = taskUpdateStatusTextClass(null)
     expect(cls).toContain('gray')
     expect(cls).not.toContain('font-medium')
+  })
+
+  it('GitHub-oppdatering → lilla bold tekst', () => {
+    const cls = taskUpdateStatusTextClass(null, '', true)
+    expect(cls).toContain('violet')
+    expect(cls).toContain('font-medium')
   })
 })

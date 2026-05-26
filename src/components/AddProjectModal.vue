@@ -4,11 +4,13 @@ import AppInput from '@/components/AppInput.vue'
 import AppModal from '@/components/AppModal.vue'
 import AppSelect from '@/components/AppSelect.vue'
 import type { AuthUser } from '@/types'
+import { parseGithubRepoInput } from '@/utils/github'
 
 export type CreateProjectPayload = {
   name: string
   description: string
   projectLeaderId: string
+  githubRepo: string | null
 }
 
 const open = defineModel<boolean>({ required: true })
@@ -28,6 +30,7 @@ const emit = defineEmits<{
 const name = ref('')
 const description = ref('')
 const projectLeaderId = ref('')
+const githubRepo = ref('')
 const validationError = ref<string | null>(null)
 
 const projectLeaderOptions = computed(() => {
@@ -61,6 +64,7 @@ watch(open, (isOpen) => {
     name.value = ''
     description.value = ''
     projectLeaderId.value = ''
+    githubRepo.value = ''
     validationError.value = null
   }
 })
@@ -82,11 +86,18 @@ function handleSave() {
     return
   }
 
+  const parsedGithubRepo = parseGithubRepoInput(githubRepo.value)
+  if (parsedGithubRepo.error) {
+    validationError.value = parsedGithubRepo.error
+    return
+  }
+
   validationError.value = null
   emit('save', {
     name: trimmedName,
     description: trimmedDescription,
     projectLeaderId: projectLeaderId.value,
+    githubRepo: parsedGithubRepo.value,
   })
 }
 </script>
@@ -126,6 +137,13 @@ function handleSave() {
         placeholder="Velg prosjektleder"
         :options="projectLeaderOptions"
         :disabled="saving || leadersLoading || projectLeaders.length === 0"
+      />
+
+      <AppInput
+        v-model="githubRepo"
+        label="GitHub repo (valgfritt)"
+        placeholder="https://github.com/..."
+        :disabled="saving"
       />
 
       <p v-if="leadersError" class="text-sm text-red-600">{{ leadersError }}</p>

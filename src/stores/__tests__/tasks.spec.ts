@@ -167,6 +167,7 @@ describe('useTaskUpdatesStore', () => {
           imageUrl: null,
           fileUrl: null,
           fileName: null,
+          isFromGithub: false,
           createdAt: expect.anything(),
         }),
       )
@@ -230,6 +231,7 @@ describe('useTaskUpdatesStore', () => {
           imageUrl: null,
           fileUrl: null,
           fileName: null,
+          isFromGithub: false,
         }),
       )
       expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
@@ -328,6 +330,7 @@ describe('useTaskUpdatesStore', () => {
           imageUrl: null,
           fileUrl: null,
           fileName: null,
+          isFromGithub: false,
         }),
       )
       expect(mockUpdateDoc).toHaveBeenCalledTimes(2)

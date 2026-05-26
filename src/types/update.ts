@@ -6,6 +6,7 @@ export const TASK_UPDATES_SUBCOLLECTION = 'Updates' as const
 export interface TaskUpdateData {
   text: string
   createdBy: string
+  isFromGithub?: boolean
   statusChange: TaskStatus | null
   imageUrl: string | null
   fileUrl: string | null

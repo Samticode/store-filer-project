@@ -87,6 +87,7 @@ export const useTaskUpdatesStore = defineStore('taskUpdates', () => {
       batch.set(updateRef, {
         text,
         createdBy: input.createdBy,
+        isFromGithub: false,
         createdAt: serverTimestamp(),
         statusChange,
         imageUrl: null,
@@ -135,6 +136,7 @@ export const useTaskUpdatesStore = defineStore('taskUpdates', () => {
       batch.set(updateRef, {
         text: input.text,
         createdBy: input.createdBy,
+        isFromGithub: false,
         createdAt: serverTimestamp(),
         statusChange: input.statusChange,
         imageUrl: null,
@@ -189,6 +191,7 @@ export const useTaskUpdatesStore = defineStore('taskUpdates', () => {
       await setDoc(updateRef, {
         text: input.text.trim(),
         createdBy: input.createdBy,
+        isFromGithub: false,
         createdAt: serverTimestamp(),
         statusChange: input.statusChange,
         imageUrl,

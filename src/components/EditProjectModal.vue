@@ -5,12 +5,14 @@ import AppModal from '@/components/AppModal.vue'
 import AppSelect from '@/components/AppSelect.vue'
 import type { AuthUser, Project, ProjectStatus } from '@/types'
 import { editProjectStatusOptions } from '@/utils/projectLabels'
+import { formatGithubRepoUrl, parseGithubRepoInput } from '@/utils/github'
 
 export type EditProjectPayload = {
   name: string
   description: string
   projectLeaderId: string
   status: ProjectStatus
+  githubRepo: string | null
 }
 
 const open = defineModel<boolean>({ required: true })
@@ -32,6 +34,7 @@ const name = ref('')
 const description = ref('')
 const projectLeaderId = ref('')
 const status = ref<ProjectStatus>('active')
+const githubRepo = ref('')
 const validationError = ref<string | null>(null)
 
 const statusOptions = computed(() => editProjectStatusOptions(props.project?.status))
@@ -69,6 +72,7 @@ watch(
     description.value = project?.description ?? ''
     projectLeaderId.value = project?.projectLeaderId ?? ''
     status.value = project?.status ?? 'active'
+    githubRepo.value = project?.githubRepo ? formatGithubRepoUrl(project.githubRepo) : ''
     validationError.value = null
   },
   { immediate: true },
@@ -96,11 +100,18 @@ function handleSave() {
   }
 
   validationError.value = null
+  const parsedGithubRepo = parseGithubRepoInput(githubRepo.value)
+  if (parsedGithubRepo.error) {
+    validationError.value = parsedGithubRepo.error
+    return
+  }
+
   emit('save', {
     name: trimmedName,
     description: trimmedDescription,
     projectLeaderId: projectLeaderId.value,
     status: status.value,
+    githubRepo: parsedGithubRepo.value,
   })
 }
 </script>
@@ -147,6 +158,13 @@ function handleSave() {
         label="Status"
         placeholder="Velg status"
         :options="statusOptions"
+        :disabled="saving"
+      />
+
+      <AppInput
+        v-model="githubRepo"
+        label="GitHub repo (valgfritt)"
+        placeholder="https://github.com/store-filer-as/kundeportal"
         :disabled="saving"
       />
 

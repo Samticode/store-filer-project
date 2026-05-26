@@ -7,6 +7,14 @@
         { "fieldPath": "projectId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "Tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "githubBranch", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

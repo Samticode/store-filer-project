@@ -13,6 +13,7 @@
     "type-check": "vue-tsc --build",
     "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "firebase:deploy:storage": "firebase deploy --only storage",
+    "firebase:deploy:functions": "firebase deploy --only functions",
     "firebase:deploy:hosting": "npm run build-only && firebase deploy --only hosting"
   },
   "dependencies": {

@@ -55,7 +55,14 @@ export function statusChangeLogText(from: TaskStatus, to: TaskStatus) {
 export const TASK_APPROVAL_UPDATE_TEXT = 'Oppgaven er godkjent. Bra jobba!'
 export const TASK_REJECTION_UPDATE_TEXT = 'Oppgaven ble ikke godkjent.'
 
-export function taskUpdateCardClass(statusChange: TaskStatus | null, text = '') {
+export function taskUpdateCardClass(
+  statusChange: TaskStatus | null,
+  text = '',
+  isFromGithub = false,
+) {
+  if (isFromGithub) {
+    return 'border-violet-600 bg-violet-50'
+  }
   if (statusChange === 'approved') {
     return 'border-green-700 bg-emerald-50'
   }
@@ -68,14 +75,24 @@ export function taskUpdateCardClass(statusChange: TaskStatus | null, text = '') 
   return 'border-green-800 bg-green-50'
 }
 
-export function taskUpdateAttachmentBorderClass(statusChange: TaskStatus | null, text = '') {
+export function taskUpdateAttachmentBorderClass(
+  statusChange: TaskStatus | null,
+  text = '',
+  isFromGithub = false,
+) {
+  if (isFromGithub) return 'border-violet-200'
   if (statusChange === 'approved') return 'border-emerald-200'
   if (statusChange === 'pending_approval') return 'border-amber-200'
   if (statusChange === 'in_progress' && text === TASK_REJECTION_UPDATE_TEXT) return 'border-rose-200'
   return 'border-green-200'
 }
 
-export function taskUpdateLinkClass(statusChange: TaskStatus | null, text = '') {
+export function taskUpdateLinkClass(
+  statusChange: TaskStatus | null,
+  text = '',
+  isFromGithub = false,
+) {
+  if (isFromGithub) return 'text-violet-800 hover:text-violet-700'
   if (statusChange === 'approved') return 'text-green-800 hover:text-green-700'
   if (statusChange === 'pending_approval') return 'text-amber-800 hover:text-amber-700'
   if (statusChange === 'in_progress' && text === TASK_REJECTION_UPDATE_TEXT) {
@@ -84,7 +101,12 @@ export function taskUpdateLinkClass(statusChange: TaskStatus | null, text = '') 
   return 'text-green-800 hover:text-green-700'
 }
 
-export function taskUpdateStatusTextClass(statusChange: TaskStatus | null, text = '') {
+export function taskUpdateStatusTextClass(
+  statusChange: TaskStatus | null,
+  text = '',
+  isFromGithub = false,
+) {
+  if (isFromGithub) return 'font-medium text-violet-800'
   if (statusChange === 'approved') return 'font-medium text-green-800'
   if (statusChange === 'pending_approval') return 'font-medium text-amber-800'
   if (statusChange === 'in_progress' && text === TASK_REJECTION_UPDATE_TEXT) {

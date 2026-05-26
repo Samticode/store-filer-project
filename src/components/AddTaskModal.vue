@@ -18,6 +18,7 @@ export type CreateTaskPayload = {
   priority: TaskPriority
   status: TaskStatus
   assignedEmployeeId: string
+  githubBranch: string | null
 }
 
 const open = defineModel<boolean>({ required: true })
@@ -26,6 +27,7 @@ const props = defineProps<{
   employees: AuthUser[]
   employeesLoading?: boolean
   employeesError?: string | null
+  hasGithubRepo?: boolean
   saving?: boolean
   error?: string | null
 }>()
@@ -39,6 +41,7 @@ const description = ref('')
 const priority = ref<TaskPriority>(TASK_PRIORITY_MEDIUM)
 const status = ref<TaskStatus>(TASK_STATUS_NOT_STARTED)
 const assignedEmployeeId = ref('')
+const githubBranch = ref('')
 const validationError = ref<string | null>(null)
 
 const priorityOptions = computed(() =>
@@ -88,6 +91,7 @@ watch(open, (isOpen) => {
     priority.value = TASK_PRIORITY_MEDIUM
     status.value = TASK_STATUS_NOT_STARTED
     assignedEmployeeId.value = ''
+    githubBranch.value = ''
     validationError.value = null
   }
 })
@@ -109,6 +113,8 @@ function handleSave() {
     return
   }
 
+  const trimmedGithubBranch = githubBranch.value.trim()
+
   validationError.value = null
   emit('save', {
     title: trimmedTitle,
@@ -116,6 +122,7 @@ function handleSave() {
     priority: priority.value,
     status: status.value,
     assignedEmployeeId: assignedEmployeeId.value,
+    githubBranch: trimmedGithubBranch.length > 0 ? trimmedGithubBranch : null,
   })
 }
 </script>
@@ -171,6 +178,14 @@ function handleSave() {
         placeholder="Velg ansatt"
         :options="employeeOptions"
         :disabled="saving || employeesLoading || employees.length === 0"
+      />
+
+      <AppInput
+        v-if="hasGithubRepo"
+        v-model="githubBranch"
+        label="GitHub branch (valgfritt)"
+        placeholder="feature/login-fix"
+        :disabled="saving"
       />
 
       <p v-if="employeesError" class="text-sm text-red-600">{{ employeesError }}</p>
