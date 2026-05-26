@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthSplitLayout from '@/components/AuthSplitLayout.vue'
+import PrivacyPolicyLink from '@/components/PrivacyPolicyLink.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -10,11 +11,16 @@ const authStore = useAuthStore()
 const name = ref('')
 const email = ref('')
 const password = ref('')
+const acceptedPrivacy = ref(false)
 const error = ref('')
 const submitting = ref(false)
 
 async function handleSubmit() {
   error.value = ''
+  if (!acceptedPrivacy.value) {
+    error.value = 'Du må godta personvernerklæringen for å registrere deg.'
+    return
+  }
   submitting.value = true
   try {
     await authStore.signup(name.value, email.value, password.value)
@@ -69,20 +75,40 @@ async function handleSubmit() {
         />
       </div>
 
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+      <div class="flex items-start gap-2">
+        <input
+          id="accept-privacy"
+          v-model="acceptedPrivacy"
+          type="checkbox"
+          required
+          class="mt-1 h-4 w-4 rounded border-gray-300 text-green-800 focus:ring-2 focus:ring-green-700"
+        />
+        <label for="accept-privacy" class="text-sm leading-relaxed text-gray-700">
+          Jeg har lest og godtar
+          <PrivacyPolicyLink />
+          , inkludert informasjon om registrering av arbeidsaktivitet.
+        </label>
+      </div>
+
+      <p v-if="error" class="text-sm text-red-600" role="alert">{{ error }}</p>
 
       <button
         type="submit"
-        :disabled="submitting"
+        :disabled="submitting || !acceptedPrivacy || !name || !email || !password"
         class="w-full rounded-lg bg-green-800 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
       >
         {{ submitting ? 'Registrerer…' : 'Registrer deg' }}
       </button>
     </form>
 
-    <p class="text-center text-sm text-gray-500">
+    <p class="text-center text-sm text-gray-500 mb-1">
       Har du allerede en konto?
-      <router-link to="/login" class="hover:underline">Logg inn</router-link>
+      <router-link to="/login" class="font-medium text-green-800 underline hover:text-green-700">
+        Logg inn
+      </router-link>
+    </p>
+    <p class="text-center text-xs text-gray-500">
+      <PrivacyPolicyLink label="Personvern og informasjon" variant="muted" />
     </p>
   </AuthSplitLayout>
 </template>

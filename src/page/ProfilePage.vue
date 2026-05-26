@@ -2,6 +2,8 @@
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppInput from '@/components/AppInput.vue'
+import DataRegistrationNotice from '@/components/DataRegistrationNotice.vue'
+import PrivacyPolicyLink from '@/components/PrivacyPolicyLink.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { roleBadgeClass, roleLabel } from '@/utils/roleLabels'
@@ -68,7 +70,9 @@ async function handleSave() {
       <p class="text-sm text-gray-500">Oppdater navn og email for kontoen din.</p>
     </header> 
 
-    <section v-if="currentUser" class="mt-8 max-w-xl">
+    <section v-if="currentUser" class="mt-8 max-w-xl space-y-6">
+      <DataRegistrationNotice />
+
       <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-200 px-5 py-4">
           <div class="flex items-center gap-3">

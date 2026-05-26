@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthSplitLayout from '@/components/AuthSplitLayout.vue'
+import PrivacyPolicyLink from '@/components/PrivacyPolicyLink.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -66,9 +67,14 @@ async function handleSubmit() {
       </button>
     </form>
 
-    <p class="text-center text-sm text-gray-500">
+    <p class="text-center text-sm text-gray-500 mb-1">
       Har du ikke en konto?
-      <router-link to="/signup" class="hover:underline">Registrer deg</router-link>
+      <router-link to="/signup" class="font-medium text-green-800 underline hover:text-green-700">
+        Registrer deg
+      </router-link>
+    </p>
+    <p class="text-center text-xs text-gray-500">
+      <PrivacyPolicyLink label="Personvern og informasjon" variant="muted" />
     </p>
   </AuthSplitLayout>
 </template>

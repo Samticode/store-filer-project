@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import FirebaseStatus from '@/components/FirebaseStatus.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
+import PrivacyPolicyModal from '@/components/PrivacyPolicyModal.vue'
 
 const route = useRoute()
 const showFirebaseStatus = import.meta.env.VITE_SHOW_FIREBASE_STATUS === 'true'
@@ -12,5 +13,6 @@ const showAppLayout = computed(() => route.meta.appLayout === true || route.meta
 <template>
   <AppLayout v-if="showAppLayout" />
   <RouterView v-else />
+  <PrivacyPolicyModal />
   <FirebaseStatus v-if="showFirebaseStatus" />
 </template>
